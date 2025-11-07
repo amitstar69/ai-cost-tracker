@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Cost Tracker</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta name="color-scheme" content="light dark"/>
+  <style>
+    /* Focus rings for accessibility */
+    :focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-50">
+  <div class="max-w-6xl mx-auto p-4 md:p-6">
+    <!-- Header -->
+    <header class="flex items-center justify-between gap-4">
+      <div class="flex items-center gap-2">
+        <span class="text-2xl">🎯</span>
+        <h1 class="text-2xl md:text-3xl font-semibold">AI Cost Tracker</h1>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="exportBtn" class="px-3 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-sm">📤 Export</button>
+        <button id="settingsBtn" class="px-3 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-sm">⚙</button>
+      </div>
+    </header>
+
+    <!-- Subhead -->
+    <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
+      Track OpenAI and Anthropic usage privately in your browser. No servers. No telemetry.
+    </p>
+
+    <!-- Empty state -->
+    <section id="emptyState" class="mt-6 hidden">
+      <div class="rounded-2xl border border-slate-200 dark:border-slate-800 p-6 bg-white dark:bg-slate-950">
+        <h2 class="text-xl font-medium">Get started</h2>
+        <p class="mt-2 text-slate-600 dark:text-slate-300">Add your first API key to begin tracking.</p>
+        <button id="addProviderFromEmpty" class="mt-4 px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700">Add API Provider</button>
+        <p class="mt-3 text-xs text-slate-500">🔒 Keys are stored only in this browser (localStorage). We never see them.</p>
+      </div>
+    </section>
+
+    <!-- Dashboard -->
+    <section id="dashboard" class="mt-6 hidden">
+      <!-- Stat cards -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="rounded-2xl border border-slate-200 dark:border-slate-800 p-4 bg-white dark:bg-slate-950">
+          <p class="text-xs uppercase tracking-wide text-slate-500">Today</p>
+          <p id="todayCost" class="mt-1 text-2xl font-semibold">$0.00</p>
+        </div>
+        <div class="rounded-2xl border border-slate-200 dark:border-slate-800 p-4 bg-white dark:bg-slate-950">
+          <p class="text-xs uppercase tracking-wide text-slate-500">This Week</p>
+          <p id="weekCost" class="mt-1 text-2xl font-semibold">$0.00</p>
+        </div>
+        <div class="rounded-2xl border border-slate-200 dark:border-slate-800 p-4 bg-white dark:bg-slate-950">
+          <p class="text-xs uppercase tracking-wide text-slate-500">This Month</p>
+          <p id="monthCost" class="mt-1 text-2xl font-semibold">$0.00</p>
+        </div>
+        <div class="rounded-2xl border border-slate-200 dark:border-slate-800 p-4 bg-white dark:bg-slate-950">
+          <p class="text-xs uppercase tracking-wide text-slate-500">All Time</p>
+          <p id="allTimeCost" class="mt-1 text-2xl font-semibold">$0.00</p>
+        </div>
+      </div>
+
+      <!-- Chart -->
+      <div class="mt-6 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 bg-white dark:bg-slate-950 h-64">
+        <canvas id="trendChart" aria-label="7 day cost trend"></canvas>
+      </div>
+
+      <!-- Providers -->
+      <div class="mt-6 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 bg-white dark:bg-slate-950">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-medium">Connected APIs</h2>
+          <button id="addProviderBtn" class="px-3 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 text-sm">+ Add Provider</button>
+        </div>
+        <ul id="providerList" class="mt-3 space-y-2"></ul>
+      </div>
+
+      <!-- Playground -->
+      <div class="mt-6 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 bg-white dark:bg-slate-950">
+        <h2 class="text-lg font-medium">Playground (Test & Track)</h2>
+        <div class="mt-3 grid md:grid-cols-3 gap-3">
+          <label class="block">
+            <span class="text-sm text-slate-600 dark:text-slate-300">Provider</span>
+            <select id="pgProvider" class="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-transparent p-2">
+              <option value="openai:gpt-4o">OpenAI — gpt-4o</option>
+              <option value="openai:gpt-4o-mini">OpenAI — gpt-4o-mini</option>
+              <option value="anthropic:claude-3-5-sonnet">Anthropic — claude-3-5-sonnet</option>
+              <option value="anthropic:claude-3-5-haiku">Anthropic — claude-3-5-haiku</option>
+            </select>
+          </label>
+          <div class="md:col-span-2">
+            <label class="block">
+              <span class="text-sm text-slate-600 dark:text-slate-300">Message</span>
+              <textarea id="pgMessage" rows="3" class="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-transparent p-2" placeholder="Type your message..."></textarea>
+            </label>
+          </div>
+        </div>
+        <div class="mt-3 flex items-center justify-between gap-3">
+          <div class="text-sm text-slate-600 dark:text-slate-300">
+            Est. Cost: <span id="estCost">$0.0000</span>
+          </div>
+          <button id="sendBtn" class="px-4 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700">Send →</button>
+        </div>
+        <div id="pgResult" class="mt-3 text-sm whitespace-pre-wrap"></div>
+        <div id="pgUsage" class="mt-2 text-xs text-slate-500"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Provider Modal -->
+  <dialog id="providerModal" class="rounded-2xl p-0 w-[min(92vw,28rem)] bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+    <form method="dialog">
+      <div class="p-5 border-b border-slate-200 dark:border-slate-800">
+        <h3 class="text-lg font-medium">Add API Provider</h3>
+      </div>
+      <div class="p-5 space-y-3">
+        <label class="block">
+          <span class="text-sm text-slate-600 dark:text-slate-300">Provider</span>
+          <select id="pfProvider" class="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-transparent p-2">
+            <option value="openai">OpenAI</option>
+            <option value="anthropic">Anthropic</option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="text-sm text-slate-600 dark:text-slate-300">API Key</span>
+          <input id="pfKey" type="password" class="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-transparent p-2" placeholder="sk-..." autocomplete="off"/>
+        </label>
+        <label class="block">
+          <span class="text-sm text-slate-600 dark:text-slate-300">Nickname (optional)</span>
+          <input id="pfNick" type="text" class="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-transparent p-2" placeholder="My Work Account"/>
+        </label>
+        <p class="text-xs text-slate-500">🔒 Keys are stored locally in your browser only.</p>
+      </div>
+      <div class="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2">
+        <button class="px-3 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700">Cancel</button>
+        <button id="pfSave" class="px-3 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700">Save API Key</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Settings Modal -->
+  <dialog id="settingsModal" class="rounded-2xl p-0 w-[min(92vw,28rem)] bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+    <form method="dialog">
+      <div class="p-5 border-b border-slate-200 dark:border-slate-800">
+        <h3 class="text-lg font-medium">Settings</h3>
+      </div>
+      <div class="p-5 space-y-3">
+        <label class="flex items-center justify-between">
+          <span class="text-sm">Theme</span>
+          <select id="themeSelect" class="rounded-xl border border-slate-300 dark:border-slate-700 bg-transparent p-2">
+            <option value="system">System</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </label>
+        <label class="flex items-center justify-between">
+          <span class="text-sm">Currency</span>
+          <select id="currencySelect" class="rounded-xl border border-slate-300 dark:border-slate-700 bg-transparent p-2">
+            <option value="USD">USD</option>
+          </select>
+        </label>
+        <button id="clearData" class="mt-2 w-full px-3 py-2 rounded-xl bg-rose-600 text-white hover:bg-rose-700">Clear all data</button>
+      </div>
+      <div class="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end">
+        <button class="px-3 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700">Close</button>
+      </div>
+    </form>
+  </dialog>
+
+<script>
+// -----------------------------
+// Storage
+// -----------------------------
+const SCOPE = "ai-cost-tracker";
+const DEFAULT_STATE = {
+  providers: [], // {id, provider, apiKey, nickname, enabled, createdAt}
+  usage: [],     // {id, providerId, provider, model, timestamp, promptTokens, completionTokens, totalTokens, cost}
+  settings: { theme: "system", currency: "USD" }
+};
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(SCOPE);
+    if (!raw) return structuredClone(DEFAULT_STATE);
+    const parsed = JSON.parse(raw);
+    return { ...structuredClone(DEFAULT_STATE), ...parsed };
+  } catch {
+    return structuredClone(DEFAULT_STATE);
+  }
+}
+function saveState(next) {
+  localStorage.setItem(SCOPE, JSON.stringify(next));
+  return next;
+}
+function upsertProvider(entry) {
+  const state = loadState();
+  const idx = state.providers.findIndex(p => p.id === entry.id);
+  if (idx === -1) state.providers.push(entry);
+  else state.providers[idx] = entry;
+  saveState(state); render();
+}
+function deleteProvider(id) {
+  const state = loadState();
+  state.providers = state.providers.filter(p => p.id !== id);
+  state.usage = state.usage.filter(u => u.providerId !== id);
+  saveState(state); render();
+}
+function addUsage(record) {
+  const state = loadState();
+  state.usage.push(record);
+  saveState(state); render();
+}
+
+function uuid() { return crypto.randomUUID(); }
+
+// -----------------------------
+// Pricing (per token)
+// -----------------------------
+const OPENAI_PRICING = {
+  "gpt-4o": { input: 2.50/1_000_000, output: 10.00/1_000_000 },
+  "gpt-4o-mini": { input: 0.150/1_000_000, output: 0.600/1_000_000 }
+};
+const ANTHROPIC_PRICING = {
+  "claude-3-5-sonnet": { input: 3.00/1_000_000, output: 15.00/1_000_000 },
+  "claude-3-5-haiku": { input: 0.80/1_000_000, output: 4.00/1_000_000 }
+};
+
+function estimateCost(provider, model, promptT, completionT) {
+  let pricing;
+  if (provider === "openai") pricing = OPENAI_PRICING[model] || { input: 0, output: 0 };
+  else pricing = ANTHROPIC_PRICING[model] || { input: 0, output: 0 };
+  return promptT * pricing.input + completionT * pricing.output;
+}
+
+// -----------------------------
+// Date helpers
+// -----------------------------
+function startOfDay(d=new Date()) { const x=new Date(d); x.setHours(0,0,0,0); return x; }
+function startOfWeek(d=new Date()) { const x=startOfDay(d); const day=x.getDay(); x.setDate(x.getDate() - day); return x; }
+function startOfMonth(d=new Date()) { const x=new Date(d.getFullYear(), d.getMonth(), 1); return x; }
+
+// -----------------------------
+let chart;
+function renderStats() {
+  const state = loadState();
+  const now = new Date();
+  const today0 = startOfDay(now);
+  const week0 = startOfWeek(now);
+  const month0 = startOfMonth(now);
+
+  const sum = (from) => state.usage.filter(u => new Date(u.timestamp) >= from && new Date(u.timestamp) <= now)
+                                   .reduce((n,u)=>n+u.cost, 0);
+  const all = state.usage.reduce((n,u)=>n+u.cost, 0);
+
+  document.getElementById("todayCost").textContent = `$${sum(today0).toFixed(2)}`;
+  document.getElementById("weekCost").textContent = `$${sum(week0).toFixed(2)}`;
+  document.getElementById("monthCost").textContent = `$${sum(month0).toFixed(2)}`;
+  document.getElementById("allTimeCost").textContent = `$${all.toFixed(2)}`;
+
+  // 7-day trend
+  const labels = [];
+  const data = [];
+  for (let i=6;i>=0;i--) {
+    const d = new Date(now); d.setDate(d.getDate()-i);
+    const d0 = startOfDay(d);
+    const d1 = new Date(d0); d1.setDate(d1.getDate()+1);
+    const value = state.usage.filter(u => {
+      const t = new Date(u.timestamp);
+      return t >= d0 && t < d1;
+    }).reduce((n,u)=>n+u.cost,0);
+    labels.push(d.toLocaleDateString(undefined, { weekday: 'short'}));
+    data.push(Number(value.toFixed(4)));
+  }
+  const ctx = document.getElementById("trendChart");
+  if (chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets: [{ label: 'Daily Cost', data, tension: 0.4, fill: true }]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { callback: (v)=>'$'+v } } }
+    }
+  });
+}
+
+function renderProviders() {
+  const state = loadState();
+  const list = document.getElementById("providerList");
+  list.innerHTML = "";
+  state.providers.forEach(p => {
+    const li = document.createElement("li");
+    li.className = "rounded-xl border border-slate-200 dark:border-slate-800 p-3 flex items-center justify-between";
+    const left = document.createElement("div");
+    left.innerHTML = `
+      <div class="font-medium">${p.provider === 'openai' ? 'OpenAI' : 'Anthropic'}${p.nickname ? ' — ' + p.nickname : ''}</div>
+      <div class="text-xs text-slate-500">${p.enabled ? '🟢 Active' : '⚪ Disabled'}</div>
+    `;
+    const right = document.createElement("div");
+    right.className = "flex items-center gap-2";
+    const toggle = document.createElement("button");
+    toggle.textContent = p.enabled ? "Disable" : "Enable";
+    toggle.className = "px-2 py-1 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-xs";
+    toggle.onclick = () => { p.enabled = !p.enabled; upsertProvider(p); };
+    const del = document.createElement("button");
+    del.textContent = "Delete";
+    del.className = "px-2 py-1 rounded-lg bg-rose-600 text-white hover:bg-rose-700 text-xs";
+    del.onclick = () => deleteProvider(p.id);
+    right.appendChild(toggle); right.appendChild(del);
+    li.appendChild(left); li.appendChild(right);
+    list.appendChild(li);
+  });
+}
+
+function render() {
+  const state = loadState();
+  const hasProviders = state.providers.length > 0;
+  document.getElementById("emptyState").classList.toggle("hidden", hasProviders);
+  document.getElementById("dashboard").classList.toggle("hidden", !hasProviders);
+  if (hasProviders) {
+    renderStats();
+    renderProviders();
+  }
+}
+
+// -----------------------------
+// Provider Modal
+// -----------------------------
+const providerModal = document.getElementById("providerModal");
+document.getElementById("addProviderBtn").onclick = () => providerModal.showModal();
+document.getElementById("addProviderFromEmpty").onclick = () => providerModal.showModal();
+document.getElementById("pfSave").onclick = (e) => {
+  e.preventDefault();
+  const provider = document.getElementById("pfProvider").value;
+  const apiKey = document.getElementById("pfKey").value.trim();
+  const nickname = document.getElementById("pfNick").value.trim();
+  if (!apiKey) { alert("Please enter an API key."); return; }
+  upsertProvider({ id: uuid(), provider, apiKey, nickname, enabled: true, createdAt: new Date().toISOString() });
+  providerModal.close();
+};
+
+// -----------------------------
+// Settings
+// -----------------------------
+const settingsModal = document.getElementById("settingsModal");
+document.getElementById("settingsBtn").onclick = () => {
+  const { settings } = loadState();
+  document.getElementById("themeSelect").value = settings.theme || "system";
+  document.getElementById("currencySelect").value = settings.currency || "USD";
+  settingsModal.showModal();
+};
+document.getElementById("clearData").onclick = (e) => {
+  e.preventDefault();
+  if (confirm("This will remove all providers and usage data from this browser.")) {
+    localStorage.removeItem(SCOPE);
+    render();
+  }
+};
+document.getElementById("themeSelect").onchange = (e) => {
+  const state = loadState();
+  state.settings.theme = e.target.value;
+  saveState(state);
+  applyTheme();
+};
+
+function applyTheme() {
+  const theme = loadState().settings.theme || "system";
+  const root = document.documentElement;
+  if (theme === "dark") root.classList.add("dark");
+  else if (theme === "light") root.classList.remove("dark");
+  else {
+    // system
+    window.matchMedia("(prefers-color-scheme: dark)").matches ? root.classList.add("dark") : root.classList.remove("dark");
+  }
+}
+
+// -----------------------------
+// Export
+// -----------------------------
+document.getElementById("exportBtn").onclick = () => {
+  const state = loadState();
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "ai-cost-tracker-export.json"; a.click();
+  URL.revokeObjectURL(url);
+};
+
+// -----------------------------
+// Playground
+// -----------------------------
+const pgProvider = document.getElementById("pgProvider");
+const pgMessage = document.getElementById("pgMessage");
+const estCost = document.getElementById("estCost");
+const sendBtn = document.getElementById("sendBtn");
+const pgResult = document.getElementById("pgResult");
+const pgUsage = document.getElementById("pgUsage");
+
+pgMessage.addEventListener("input", () => {
+  // naive estimation: 4 chars ≈ 1 token for a rough preview
+  const approxPromptTokens = Math.ceil(pgMessage.value.length / 4);
+  const [prov, model] = pgProvider.value.split(":");
+  const cost = estimateCost(prov, model, approxPromptTokens, 150);
+  estCost.textContent = `$${cost.toFixed(6)}`;
+});
+
+sendBtn.onclick = async () => {
+  const [prov, model] = pgProvider.value.split(":");
+  const state = loadState();
+  const p = state.providers.find(x => x.provider === prov && x.enabled);
+  if (!p) { alert(`Please add and enable a ${prov} provider first.`); return; }
+  const userMsg = pgMessage.value.trim();
+  if (!userMsg) { alert("Type a message first."); return; }
+
+  sendBtn.disabled = true; sendBtn.textContent = "Sending...";
+  pgResult.textContent = ""; pgUsage.textContent = "";
+
+  try {
+    if (prov === "openai") {
+      // Chat Completions
+      const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${p.apiKey}`
+        },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: "user", content: userMsg }]
+        })
+      });
+      const data = await resp.json();
+      if (data.error) throw new Error(data.error.message || "OpenAI error");
+      const usage = {
+        promptTokens: data.usage?.prompt_tokens ?? 0,
+        completionTokens: data.usage?.completion_tokens ?? 0
+      };
+      const totalTokens = usage.promptTokens + usage.completionTokens;
+      const cost = estimateCost("openai", model, usage.promptTokens, usage.completionTokens);
+      addUsage({
+        id: uuid(), providerId: p.id, provider: "openai", model,
+        timestamp: new Date().toISOString(),
+        promptTokens: usage.promptTokens, completionTokens: usage.completionTokens, totalTokens, cost
+      });
+      pgResult.textContent = data.choices?.[0]?.message?.content ?? "";
+      pgUsage.textContent = `Tokens: prompt=${usage.promptTokens}, completion=${usage.completionTokens} • Cost: $${cost.toFixed(6)}`;
+    } else {
+      // Anthropic Messages API
+      const resp = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": p.apiKey,
+          "anthropic-version": "2023-06-01"
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 256,
+          messages: [{ role: "user", content: userMsg }]
+        })
+      });
+      const data = await resp.json();
+      if (data.error) throw new Error(data.error.message || "Anthropic error");
+      const usage = {
+        promptTokens: data.usage?.input_tokens ?? 0,
+        completionTokens: data.usage?.output_tokens ?? 0
+      };
+      const totalTokens = usage.promptTokens + usage.completionTokens;
+      const cost = estimateCost("anthropic", model, usage.promptTokens, usage.completionTokens);
+      addUsage({
+        id: uuid(), providerId: p.id, provider: "anthropic", model,
+        timestamp: new Date().toISOString(),
+        promptTokens: usage.promptTokens, completionTokens: usage.completionTokens, totalTokens, cost
+      });
+      const textOut = (data.content && data.content[0] && data.content[0].text) ? data.content[0].text : "";
+      pgResult.textContent = textOut;
+      pgUsage.textContent = `Tokens: prompt=${usage.promptTokens}, completion=${usage.completionTokens} • Cost: $${cost.toFixed(6)}`;
+    }
+  } catch (err) {
+    pgResult.textContent = "Error: " + err.message;
+  } finally {
+    sendBtn.disabled = false; sendBtn.textContent = "Send →";
+  }
+};
+
+// Initialize
+applyTheme();
+render();
+</script>
+</body>
+</html>
