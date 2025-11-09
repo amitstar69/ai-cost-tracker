@@ -5,18 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Cost Tracker - Monitor Your LLM Usage</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         
-        body {
-            font-family: 'Inter', sans-serif;
+        * {
+            box-sizing: border-box;
         }
         
-        .glass {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
         }
         
         .gradient-bg {
@@ -76,6 +76,21 @@
             transform: translateX(20px);
         }
         
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
         .fade-in {
             animation: fadeIn 0.5s ease-in;
         }
@@ -84,21 +99,12 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        
-        .pulse {
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
     </style>
 </head>
 <body class="bg-gray-900 text-white min-h-screen">
     <!-- Header -->
     <header class="gradient-bg py-6 px-4 shadow-lg">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
+        <div class="max-w-7xl mx-auto flex justify-between items-center flex-wrap gap-4">
             <div class="flex items-center space-x-3">
                 <div class="text-3xl">🎯</div>
                 <div>
@@ -107,9 +113,6 @@
                 </div>
             </div>
             <div class="flex items-center space-x-4">
-                <button onclick="toggleTheme()" class="p-2 rounded-lg hover:bg-white/10 transition">
-                    <span id="themeIcon">🌙</span>
-                </button>
                 <button onclick="exportData()" class="px-4 py-2 bg-white/20 rounded-lg hover:bg-white/30 transition text-sm font-medium">
                     📤 Export
                 </button>
@@ -122,7 +125,7 @@
 
     <div class="max-w-7xl mx-auto px-4 py-8">
         <!-- Empty State -->
-        <div id="emptyState" class="text-center py-16 fade-in hidden">
+        <div id="emptyState" class="text-center py-16 fade-in">
             <div class="text-6xl mb-4">🚀</div>
             <h2 class="text-3xl font-bold mb-4">Welcome to AI Cost Tracker</h2>
             <p class="text-gray-400 mb-8 max-w-2xl mx-auto">
@@ -136,7 +139,7 @@
         </div>
 
         <!-- Main Dashboard -->
-        <div id="dashboard" class="space-y-6">
+        <div id="dashboard" class="space-y-6" style="display: none;">
             <!-- Cost Overview Cards -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div class="stat-card bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl p-6 shadow-lg">
@@ -167,7 +170,9 @@
             <!-- Chart -->
             <div class="bg-gray-800 rounded-xl p-6 shadow-lg">
                 <h3 class="text-xl font-semibold mb-4">7-Day Spending Trend</h3>
-                <canvas id="costChart" height="80"></canvas>
+                <div style="position: relative; height: 250px;">
+                    <canvas id="costChart"></canvas>
+                </div>
             </div>
 
             <!-- Two Column Layout -->
@@ -181,7 +186,7 @@
                         </button>
                     </div>
                     <div id="apiList" class="space-y-3">
-                        <!-- APIs will be populated here -->
+                        <p class="text-gray-400 text-center py-4">No APIs connected yet</p>
                     </div>
                 </div>
 
@@ -189,7 +194,7 @@
                 <div class="bg-gray-800 rounded-xl p-6 shadow-lg">
                     <h3 class="text-xl font-semibold mb-4">💰 Cost Breakdown</h3>
                     <div id="costBreakdown" class="space-y-3">
-                        <!-- Breakdown will be populated here -->
+                        <p class="text-gray-400 text-center py-4">No usage data yet</p>
                     </div>
                 </div>
             </div>
@@ -215,7 +220,7 @@
                     ></textarea>
                 </div>
 
-                <div class="flex justify-between items-center mb-4">
+                <div class="flex justify-between items-center mb-4 flex-wrap gap-4">
                     <div class="text-sm">
                         <span class="text-gray-400">Estimated Cost:</span>
                         <span id="estimatedCost" class="text-green-400 font-semibold ml-2">$0.0000</span>
@@ -230,7 +235,7 @@
                 </div>
 
                 <!-- Response Area -->
-                <div id="responseArea" class="hidden">
+                <div id="responseArea" style="display: none;">
                     <div class="bg-gray-700 rounded-lg p-4 mb-4">
                         <div class="flex justify-between items-start mb-2">
                             <div class="font-semibold">Response:</div>
@@ -259,11 +264,11 @@
     </div>
 
     <!-- Add API Modal -->
-    <div id="addApiModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm items-center justify-center z-50" style="display: none;">
-        <div class="bg-gray-800 rounded-xl p-8 max-w-2xl w-full mx-4 shadow-2xl">
+    <div id="addApiModal" class="modal">
+        <div class="bg-gray-800 rounded-xl p-8 max-w-2xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-bold">Add API Provider</h2>
-                <button onclick="closeAddApiModal()" class="text-gray-400 hover:text-white text-2xl">×</button>
+                <button onclick="closeAddApiModal()" class="text-gray-400 hover:text-white text-2xl">&times;</button>
             </div>
 
             <div class="space-y-4">
@@ -276,7 +281,7 @@
                     </select>
                 </div>
 
-                <div id="customProviderFields" class="hidden space-y-4">
+                <div id="customProviderFields" style="display: none;" class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium mb-2">Provider Name</label>
                         <input type="text" id="customProviderName" placeholder="e.g., Together.ai, Groq" class="w-full bg-gray-700 rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500 outline-none">
@@ -312,7 +317,7 @@
                 </div>
 
                 <div class="bg-purple-900/30 border border-purple-500/50 rounded-lg p-4 text-sm">
-                    🔒 <strong>Privacy Note:</strong> Your API key is stored only in your browser's localStorage. It never leaves your device and is only used to make direct API calls to the provider you selected.
+                    🔒 <strong>Privacy Note:</strong> Your API key is stored only in your browser's localStorage. It never leaves your device.
                 </div>
 
                 <div class="flex space-x-3">
@@ -328,11 +333,11 @@
     </div>
 
     <!-- Settings Modal -->
-    <div id="settingsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm items-center justify-center z-50" style="display: none;">
+    <div id="settingsModal" class="modal">
         <div class="bg-gray-800 rounded-xl p-8 max-w-md w-full mx-4 shadow-2xl">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-bold">Settings</h2>
-                <button onclick="closeSettings()" class="text-gray-400 hover:text-white text-2xl">×</button>
+                <button onclick="closeSettings()" class="text-gray-400 hover:text-white text-2xl">&times;</button>
             </div>
 
             <div class="space-y-4">
@@ -349,7 +354,6 @@
     </div>
 
     <script>
-        // Data structures
         const PRICING = {
             openai: {
                 'gpt-4o': { input: 2.50 / 1_000_000, output: 10.00 / 1_000_000 },
@@ -364,7 +368,6 @@
             }
         };
 
-        // localStorage helpers
         function getData(key) {
             try {
                 return JSON.parse(localStorage.getItem(key) || '[]');
@@ -377,22 +380,19 @@
             localStorage.setItem(key, JSON.stringify(value));
         }
 
-        // Initialize
         function init() {
             const providers = getData('ai-cost-tracker-providers');
-            const usage = getData('ai-cost-tracker-usage');
 
             if (providers.length === 0) {
-                document.getElementById('emptyState').classList.remove('hidden');
-                document.getElementById('dashboard').classList.add('hidden');
+                document.getElementById('emptyState').style.display = 'block';
+                document.getElementById('dashboard').style.display = 'none';
             } else {
-                document.getElementById('emptyState').classList.add('hidden');
-                document.getElementById('dashboard').classList.remove('hidden');
+                document.getElementById('emptyState').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block';
                 updateDashboard();
             }
         }
 
-        // Update all dashboard elements
         function updateDashboard() {
             updateCostCards();
             updateChart();
@@ -401,39 +401,33 @@
             updateModelSelect();
         }
 
-        // Update cost cards
         function updateCostCards() {
             const usage = getData('ai-cost-tracker-usage');
             const now = new Date();
 
-            // Today
             const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             const todayUsage = usage.filter(u => new Date(u.timestamp) >= todayStart);
             const todayCost = todayUsage.reduce((sum, u) => sum + u.cost, 0);
             document.getElementById('todayCost').textContent = `$${todayCost.toFixed(4)}`;
             document.getElementById('todayRequests').textContent = `${todayUsage.length} requests`;
 
-            // Week
             const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
             const weekUsage = usage.filter(u => new Date(u.timestamp) >= weekStart);
             const weekCost = weekUsage.reduce((sum, u) => sum + u.cost, 0);
             document.getElementById('weekCost').textContent = `$${weekCost.toFixed(4)}`;
             document.getElementById('weekRequests').textContent = `${weekUsage.length} requests`;
 
-            // Month
             const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
             const monthUsage = usage.filter(u => new Date(u.timestamp) >= monthStart);
             const monthCost = monthUsage.reduce((sum, u) => sum + u.cost, 0);
             document.getElementById('monthCost').textContent = `$${monthCost.toFixed(4)}`;
             document.getElementById('monthRequests').textContent = `${monthUsage.length} requests`;
 
-            // All time
             const allTimeCost = usage.reduce((sum, u) => sum + u.cost, 0);
             document.getElementById('allTimeCost').textContent = `$${allTimeCost.toFixed(4)}`;
             document.getElementById('allTimeRequests').textContent = `${usage.length} requests`;
         }
 
-        // Update chart
         let chartInstance = null;
         function updateChart() {
             const usage = getData('ai-cost-tracker-usage');
@@ -457,7 +451,7 @@
                 costs.push(dayCost);
             }
 
-            const ctx = document.getElementById('costChart').getContext('2d');
+            const ctx = document.getElementById('costChart');
             
             if (chartInstance) {
                 chartInstance.destroy();
@@ -509,7 +503,6 @@
             });
         }
 
-        // Update API list
         function updateApiList() {
             const providers = getData('ai-cost-tracker-providers');
             const usage = getData('ai-cost-tracker-usage');
@@ -546,7 +539,6 @@
             }).join('');
         }
 
-        // Update cost breakdown
         function updateCostBreakdown() {
             const usage = getData('ai-cost-tracker-usage');
             const breakdown = {};
@@ -587,7 +579,6 @@
             `).join('');
         }
 
-        // Update model select
         function updateModelSelect() {
             const providers = getData('ai-cost-tracker-providers').filter(p => p.enabled);
             const select = document.getElementById('modelSelect');
@@ -612,351 +603,4 @@
                         options += `<option value="${provider.id}|${model}">${model}</option>`;
                     });
                     options += '</optgroup>';
-                } else if (provider.provider === 'custom') {
-                    options += `<optgroup label="${provider.customName}">`;
-                    options += `<option value="${provider.id}|${provider.customModel}">${provider.customModel}</option>`;
-                    options += '</optgroup>';
-                }
-            });
-
-            select.innerHTML = options;
-        }
-
-        // Modal functions
-        function showAddApiModal() {
-            document.getElementById('addApiModal').style.display = 'flex';
-        }
-
-        function closeAddApiModal() {
-            document.getElementById('addApiModal').style.display = 'none';
-            document.getElementById('providerType').value = 'openai';
-            document.getElementById('apiKeyInput').value = '';
-            document.getElementById('nicknameInput').value = '';
-            updateProviderForm();
-        }
-
-        function updateProviderForm() {
-            const type = document.getElementById('providerType').value;
-            const customFields = document.getElementById('customProviderFields');
-            
-            if (type === 'custom') {
-                customFields.classList.remove('hidden');
-            } else {
-                customFields.classList.add('hidden');
-            }
-        }
-
-        function saveApiKey() {
-            const type = document.getElementById('providerType').value;
-            const apiKey = document.getElementById('apiKeyInput').value.trim();
-            const nickname = document.getElementById('nicknameInput').value.trim();
-
-            if (!apiKey) {
-                alert('Please enter an API key');
-                return;
-            }
-
-            const provider = {
-                id: Date.now().toString(),
-                provider: type,
-                apiKey: apiKey,
-                nickname: nickname,
-                enabled: true,
-                createdAt: new Date().toISOString()
-            };
-
-            if (type === 'custom') {
-                const customName = document.getElementById('customProviderName').value.trim();
-                const endpoint = document.getElementById('customEndpoint').value.trim();
-                const model = document.getElementById('customModel').value.trim();
-                const inputCost = parseFloat(document.getElementById('customInputCost').value) || 0;
-                const outputCost = parseFloat(document.getElementById('customOutputCost').value) || 0;
-
-                if (!customName || !endpoint || !model) {
-                    alert('Please fill in all custom provider fields');
-                    return;
-                }
-
-                provider.customName = customName;
-                provider.customEndpoint = endpoint;
-                provider.customModel = model;
-                provider.customPricing = {
-                    input: inputCost / 1_000_000,
-                    output: outputCost / 1_000_000
-                };
-            }
-
-            const providers = getData('ai-cost-tracker-providers');
-            providers.push(provider);
-            setData('ai-cost-tracker-providers', providers);
-
-            closeAddApiModal();
-            init();
-        }
-
-        function toggleProvider(id) {
-            const providers = getData('ai-cost-tracker-providers');
-            const provider = providers.find(p => p.id === id);
-            if (provider) {
-                provider.enabled = !provider.enabled;
-                setData('ai-cost-tracker-providers', providers);
-                updateDashboard();
-            }
-        }
-
-        function deleteProvider(id) {
-            if (!confirm('Are you sure you want to delete this API provider?')) return;
-            
-            let providers = getData('ai-cost-tracker-providers');
-            providers = providers.filter(p => p.id !== id);
-            setData('ai-cost-tracker-providers', providers);
-            
-            if (providers.length === 0) {
-                init();
-            } else {
-                updateDashboard();
-            }
-        }
-
-        // Playground functions
-        async function sendPlaygroundRequest() {
-            const select = document.getElementById('modelSelect');
-            const prompt = document.getElementById('promptInput').value.trim();
-            const button = document.getElementById('sendButton');
-
-            if (!select.value) {
-                alert('Please select a model');
-                return;
-            }
-
-            if (!prompt) {
-                alert('Please enter a message');
-                return;
-            }
-
-            const [providerId, model] = select.value.split('|');
-            const providers = getData('ai-cost-tracker-providers');
-            const provider = providers.find(p => p.id === providerId);
-
-            if (!provider) {
-                alert('Provider not found');
-                return;
-            }
-
-            button.disabled = true;
-            button.textContent = 'Sending...';
-            document.getElementById('responseArea').classList.add('hidden');
-
-            const startTime = Date.now();
-
-            try {
-                let result;
-                if (provider.provider === 'openai') {
-                    result = await callOpenAI(provider.apiKey, model, prompt);
-                } else if (provider.provider === 'anthropic') {
-                    result = await callAnthropic(provider.apiKey, model, prompt);
-                } else if (provider.provider === 'custom') {
-                    result = await callCustomAPI(provider, prompt);
-                }
-
-                const endTime = Date.now();
-                const duration = ((endTime - startTime) / 1000).toFixed(2);
-
-                const usage = {
-                    id: Date.now().toString(),
-                    providerId: provider.id,
-                    provider: provider.provider === 'custom' ? provider.customName : provider.provider,
-                    model: model,
-                    timestamp: new Date().toISOString(),
-                    promptTokens: result.promptTokens,
-                    completionTokens: result.completionTokens,
-                    totalTokens: result.totalTokens,
-                    cost: result.cost,
-                    prompt: prompt
-                };
-
-                const usageData = getData('ai-cost-tracker-usage');
-                usageData.push(usage);
-                setData('ai-cost-tracker-usage', usageData);
-
-                document.getElementById('responseText').textContent = result.response;
-                document.getElementById('responseTime').textContent = `${duration}s`;
-                document.getElementById('inputTokens').textContent = result.promptTokens.toLocaleString();
-                document.getElementById('outputTokens').textContent = result.completionTokens.toLocaleString();
-                document.getElementById('actualCost').textContent = `${result.cost.toFixed(6)}`;
-                document.getElementById('responseArea').classList.remove('hidden');
-
-                updateDashboard();
-
-            } catch (error) {
-                alert(`Error: ${error.message}`);
-                console.error(error);
-            } finally {
-                button.disabled = false;
-                button.textContent = 'Send Message →';
-            }
-        }
-
-        async function callOpenAI(apiKey, model, prompt) {
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
-                },
-                body: JSON.stringify({
-                    model: model,
-                    messages: [{ role: 'user', content: prompt }]
-                })
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error?.message || 'OpenAI API request failed');
-            }
-
-            const data = await response.json();
-            const pricing = PRICING.openai[model];
-
-            return {
-                response: data.choices[0].message.content,
-                promptTokens: data.usage.prompt_tokens,
-                completionTokens: data.usage.completion_tokens,
-                totalTokens: data.usage.total_tokens,
-                cost: (data.usage.prompt_tokens * pricing.input) + (data.usage.completion_tokens * pricing.output)
-            };
-        }
-
-        async function callAnthropic(apiKey, model, prompt) {
-            const response = await fetch('https://api.anthropic.com/v1/messages', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': apiKey,
-                    'anthropic-version': '2023-06-01'
-                },
-                body: JSON.stringify({
-                    model: model,
-                    max_tokens: 1024,
-                    messages: [{ role: 'user', content: prompt }]
-                })
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error?.message || 'Anthropic API request failed');
-            }
-
-            const data = await response.json();
-            const pricing = PRICING.anthropic[model];
-
-            return {
-                response: data.content[0].text,
-                promptTokens: data.usage.input_tokens,
-                completionTokens: data.usage.output_tokens,
-                totalTokens: data.usage.input_tokens + data.usage.output_tokens,
-                cost: (data.usage.input_tokens * pricing.input) + (data.usage.output_tokens * pricing.output)
-            };
-        }
-
-        async function callCustomAPI(provider, prompt) {
-            const response = await fetch(provider.customEndpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${provider.apiKey}`
-                },
-                body: JSON.stringify({
-                    model: provider.customModel,
-                    messages: [{ role: 'user', content: prompt }]
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error('Custom API request failed');
-            }
-
-            const data = await response.json();
-            
-            const promptTokens = data.usage?.prompt_tokens || 0;
-            const completionTokens = data.usage?.completion_tokens || 0;
-            const responseText = data.choices?.[0]?.message?.content || data.content?.[0]?.text || JSON.stringify(data);
-
-            return {
-                response: responseText,
-                promptTokens: promptTokens,
-                completionTokens: completionTokens,
-                totalTokens: promptTokens + completionTokens,
-                cost: (promptTokens * provider.customPricing.input) + (completionTokens * provider.customPricing.output)
-            };
-        }
-
-        function openSettings() {
-            document.getElementById('settingsModal').style.display = 'flex';
-        }
-
-        function closeSettings() {
-            document.getElementById('settingsModal').style.display = 'none';
-        }
-
-        function confirmClearData() {
-            if (confirm('Are you sure you want to delete all data? This cannot be undone.')) {
-                localStorage.removeItem('ai-cost-tracker-providers');
-                localStorage.removeItem('ai-cost-tracker-usage');
-                closeSettings();
-                init();
-            }
-        }
-
-        function exportData() {
-            const data = {
-                providers: getData('ai-cost-tracker-providers').map(p => ({
-                    ...p,
-                    apiKey: '***REDACTED***'
-                })),
-                usage: getData('ai-cost-tracker-usage'),
-                exportDate: new Date().toISOString()
-            };
-
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `ai-cost-tracker-export-${new Date().toISOString().split('T')[0]}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
-        function toggleTheme() {
-            const icon = document.getElementById('themeIcon');
-            icon.textContent = icon.textContent === '🌙' ? '☀️' : '🌙';
-        }
-
-        document.getElementById('promptInput')?.addEventListener('input', function() {
-            const text = this.value;
-            const approxTokens = Math.ceil(text.length / 4);
-            const select = document.getElementById('modelSelect');
-            
-            if (select.value) {
-                const [providerId, model] = select.value.split('|');
-                const providers = getData('ai-cost-tracker-providers');
-                const provider = providers.find(p => p.id === providerId);
-                
-                let pricing;
-                if (provider.provider === 'openai') {
-                    pricing = PRICING.openai[model];
-                } else if (provider.provider === 'anthropic') {
-                    pricing = PRICING.anthropic[model];
-                } else {
-                    pricing = provider.customPricing;
-                }
-                
-                const estimatedCost = approxTokens * pricing.input + (approxTokens * 2 * pricing.output);
-                document.getElementById('estimatedCost').textContent = `${estimatedCost.toFixed(6)}`;
-            }
-        });
-
-        window.addEventListener('DOMContentLoaded', init);
-    </script>
-</body>
-</html>
+                } else if (
