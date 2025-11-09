@@ -259,7 +259,7 @@
     </div>
 
     <!-- Add API Modal -->
-    <div id="addApiModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50">
+    <div id="addApiModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm items-center justify-center z-50" style="display: none;">
         <div class="bg-gray-800 rounded-xl p-8 max-w-2xl w-full mx-4 shadow-2xl">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-bold">Add API Provider</h2>
@@ -328,7 +328,7 @@
     </div>
 
     <!-- Settings Modal -->
-    <div id="settingsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50">
+    <div id="settingsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm items-center justify-center z-50" style="display: none;">
         <div class="bg-gray-800 rounded-xl p-8 max-w-md w-full mx-4 shadow-2xl">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-bold">Settings</h2>
@@ -624,13 +624,11 @@
 
         // Modal functions
         function showAddApiModal() {
-            document.getElementById('addApiModal').classList.remove('hidden');
-            document.getElementById('addApiModal').classList.add('flex');
+            document.getElementById('addApiModal').style.display = 'flex';
         }
 
         function closeAddApiModal() {
-            document.getElementById('addApiModal').classList.add('hidden');
-            document.getElementById('addApiModal').classList.remove('flex');
+            document.getElementById('addApiModal').style.display = 'none';
             document.getElementById('providerType').value = 'openai';
             document.getElementById('apiKeyInput').value = '';
             document.getElementById('nicknameInput').value = '';
@@ -894,13 +892,11 @@
         }
 
         function openSettings() {
-            document.getElementById('settingsModal').classList.remove('hidden');
-            document.getElementById('settingsModal').classList.add('flex');
+            document.getElementById('settingsModal').style.display = 'flex';
         }
 
         function closeSettings() {
-            document.getElementById('settingsModal').classList.add('hidden');
-            document.getElementById('settingsModal').classList.remove('flex');
+            document.getElementById('settingsModal').style.display = 'none';
         }
 
         function confirmClearData() {
