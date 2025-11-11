@@ -1,4 +1,5 @@
-push(usage);
+Data = getData('ai-cost-tracker-usage');
+                usageData.push(usage);
                 setData('ai-cost-tracker-usage', usageData);
 
                 document.getElementById('responseText').textContent = result.response;
@@ -142,31 +143,43 @@ push(usage);
             URL.revokeObjectURL(url);
         }
 
-        document.getElementById('promptInput').addEventListener('input', function() {
-            const text = this.value;
-            const approxTokens = Math.ceil(text.length / 4);
-            const select = document.getElementById('modelSelect');
+        window.addEventListener('DOMContentLoaded', function() {
+            init();
             
-            if (select.value) {
-                const [providerId, model] = select.value.split('|');
-                const providers = getData('ai-cost-tracker-providers');
-                const provider = providers.find(p => p.id === providerId);
-                
-                let pricing;
-                if (provider.provider === 'openai') {
-                    pricing = PRICING.openai[model];
-                } else if (provider.provider === 'anthropic') {
-                    pricing = PRICING.anthropic[model];
-                } else {
-                    pricing = provider.customPricing;
-                }
-                
-                const estimatedCost = approxTokens * pricing.input + (approxTokens * 2 * pricing.output);
-                document.getElementById('estimatedCost').textContent = `$${estimatedCost.toFixed(6)}`;
+            const promptInput = document.getElementById('promptInput');
+            if (promptInput) {
+                promptInput.addEventListener('input', function() {
+                    const text = this.value;
+                    const approxTokens = Math.ceil(text.length / 4);
+                    const select = document.getElementById('modelSelect');
+                    
+                    if (select && select.value) {
+                        const [providerId, model] = select.value.split('|');
+                        const providers = getData('ai-cost-tracker-providers');
+                        const provider = providers.find(p => p.id === providerId);
+                        
+                        if (provider) {
+                            let pricing;
+                            if (provider.provider === 'openai') {
+                                pricing = PRICING.openai[model];
+                            } else if (provider.provider === 'anthropic') {
+                                pricing = PRICING.anthropic[model];
+                            } else if (provider.customPricing) {
+                                pricing = provider.customPricing;
+                            }
+                            
+                            if (pricing) {
+                                const estimatedCost = approxTokens * pricing.input + (approxTokens * 2 * pricing.output);
+                                const costElement = document.getElementById('estimatedCost');
+                                if (costElement) {
+                                    costElement.textContent = `$${estimatedCost.toFixed(6)}`;
+                                }
+                            }
+                        }
+                    }
+                });
             }
         });
-
-        window.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
