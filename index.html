@@ -410,7 +410,14 @@
             const apiKey = document.getElementById('apiKeyInput').value.trim();
             if (!apiKey) { alert('Please enter an API key'); return; }
 
-            const provider = {
+           if (type === 'openai' && !apiKey.startsWith('sk-')) {
+        alert('Invalid OpenAI API key');
+        return;
+    }
+    if (type === 'anthropic' && !apiKey.startsWith('sk-ant-') && !apiKey.startsWith('sk-')) {
+        alert('Invalid Anthropic API key');
+        return;
+    }  const provider = {
                 id: Date.now().toString(),
                 provider: type,
                 apiKey: apiKey,
