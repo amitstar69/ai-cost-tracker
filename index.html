@@ -589,33 +589,149 @@
                 cost: (data.usage.input_tokens * pricing.input) + (data.usage.output_tokens * pricing.output)
             };
         }
-    const response = await fetch(provider.customEndpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${provider.apiKey}`
-                },
-                body: JSON.stringify({
-                    model: provider.customModel,
-                    messages: [{ role: 'user', content: prompt }]
-                })
-            });
-
-            if (!response.ok) throw new Error('Custom API request failed');
-
-            const data = await response.json();
-            const promptTokens = data.usage?.prompt_tokens || 0;
-            const completionTokens = data.usage?.completion_tokens || 0;
-            const responseText = data.choices?.[0]?.message?.content || data.content?.[0]?.text || JSON.stringify(data);
-
-            return {
-                response: responseText,
-                promptTokens: promptTokens,
-                completionTokens: completionTokens,
-                totalTokens: promptTokens + completionTokens,
-                cost: (promptTokens * provider.customPricing.input) + (completionTokens * provider.customPricing.output)
+                    
             };
+    async function callCustomAPI(provider, prompt) {
+
+    // 1. Gemini custom handling
+    if ((provider.customName || '').toLowerCase().includes('gemini')) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${provider.customModel}:generateContent?key=${provider.apiKey}`;
+        const body = {
+            contents: [
+                {
+                    role: 'user',
+                    parts: [{ text: prompt }]
+                }
+            ]
+        };
+        const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        if (!resp.ok) {
+            const errText = await resp.text();
+            throw new Error(errText || 'Gemini API request failed');
         }
+        const data = await resp.json();
+        const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const promptTokens = Math.ceil(prompt.length / 4);
+        const completionTokens = Math.ceil(responseText.length / 4);
+        return {
+            response: responseText,
+            promptTokens,
+            completionTokens,
+            totalTokens: promptTokens + completionTokens,
+            cost:
+                promptTokens * provider.customPricing.input +
+                completionTokens * provider.customPricing.output
+        };
+    }
+
+    // 2. Normal Custom LLM fallback
+    const response = await fetch(provider.customEndpoint, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${provider.apiKey}`
+        },
+        body: JSON.stringify({
+            model: provider.customModel,
+            messages: [{ role: 'user', content: prompt }]
+        })
+    });
+    if (!response.ok) throw new Error('Custom API request failed');
+
+    const data = await response.json();
+    const promptTokens = data.usage?.prompt_tokens || 0;
+    const completionTokens = data.usage?.completion_tokens || 0;
+    const responseText =
+        data.choices?.[0]?.message?.content ||
+        data.content?.[0]?.text ||async function callCustomAPI(provider, prompt) {
+    // 1. Gemini custom handling
+    if ((provider.customName || '').toLowerCase().includes('gemini')) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${provider.customModel}:generateContent?key=${provider.apiKey}`;
+        const body = {
+            contents: [
+                {
+                    role: 'user',
+                    parts: [{ text: prompt }]
+                }
+            ]
+        };
+        const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        if (!resp.ok) {
+            const errText = await resp.text();
+            throw new Error(errText || 'Gemini API request failed');
+        }
+        const data = await resp.json();
+        const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const promptTokens = Math.ceil(prompt.length / 4);
+        const completionTokens = Math.ceil(responseText.length / 4);
+        return {
+            response: responseText,
+            promptTokens,
+            completionTokens,
+            totalTokens: promptTokens + completionTokens,
+            cost:
+                promptTokens * provider.customPricing.input +
+                completionTokens * provider.customPricing.output
+        };
+    }
+    // 2. Normal Custom LLM fallback
+    const response = await fetch(provider.customEndpoint, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${provider.apiKey}`
+        },
+        body: JSON.stringify({
+            model: provider.customModel,
+            messages: [{ role: 'user', content: prompt }]
+        })
+    });
+    if (!response.ok) throw new Error('Custom API request failed');
+    const data = await response.json();
+    const promptTokens = data.usage?.prompt_tokens || 0;
+    const completionTokens = data.usage?.completion_tokens || 0;
+    const responseText =
+        data.choices?.[0]?.message?.content ||
+        data.content?.[0]?.text ||
+        JSON.stringify(data);
+    return {
+        response: responseText,
+        promptTokens,
+        completionTokens,
+        totalTokens: promptTokens + completionTokens,
+        cost:
+            promptTokens * provider.customPricing.input +
+            completionTokens * provider.customPricing.output
+    };
+}
+
+function openSettings() {
+    document.getElementById('settingsModal').classList.add('active');
+}
+
+function closeSettings() {
+    document.getElementById('settingsModal').classList.remove('active');
+}
+        JSON.stringify(data);
+    return {
+        response: responseText,
+        promptTokens,
+        completionTokens,
+        totalTokens: promptTokens + completionTokens,
+        cost:
+            promptTokens * provider.customPricing.input +
+            completionTokens * provider.customPricing.output
+    };
+}
+    }
 
         function openSettings() {
             document.getElementById('settingsModal').classList.add('active');
