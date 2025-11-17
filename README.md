@@ -42,3 +42,32 @@ Edit the `OPENAI_PRICING` and `ANTHROPIC_PRICING` objects.
 ---
 
 Built following the provided implementation spec.
+
+### Provider Setup & Testing
+
+#### OpenAI (GPT-4o / GPT-4o-mini)
+- Click **Add API Provider** and select **OpenAI**.
+- Enter your model name, e.g., `gpt-4o` or `gpt-4o-mini`.
+- Set the input and output cost per million tokens using current OpenAI pricing.
+- Paste your OpenAI API key (starts with `sk-`). Keys not starting with `sk-` will trigger an invalid-key alert.
+- Optionally add a nickname to identify the key.
+- Save the provider, then open the **Playground**, select your OpenAI provider, and send a test prompt. The dashboard will update with token and cost data.
+
+#### Anthropic (Claude models)
+- Click **Add API Provider** and select **Anthropic**.
+- Enter your model name, such as `claude-3-sonnet-20240229` or `claude-3-haiku-20240307`.
+- Set the input and output costs per million tokens according to Anthropic’s pricing.
+- Paste your Anthropic API key (prefix `sk-ant-` or `sk-`). The app validates the prefix and will warn if the key format is incorrect.
+- Provide a nickname if desired and save the provider.
+- Use the **Playground** to send a message with your Anthropic provider. The dashboard should reflect usage and cost.
+
+#### Gemini / Custom Providers
+- Choose **Custom** in the **Add API Provider** modal for Gemini or other custom models.
+- Fill in provider name (e.g., `Gemini`), endpoint URL, model name, and pricing (input/output cost per million tokens).
+- Paste your API key (no prefix validation for custom providers).
+- Save and test via the **Playground**. Token estimates and costs will be computed using the heuristic estimator built into the app.
+
+### Notes
+- Version 2.1 introduces token estimation, usage event logging, and cost aggregation for today, this week, this month, and all time.
+- All data (API keys and usage history) stays in your browser’s local storage and is never sent to any server.
+- You can clear all stored data via the **Settings** modal.
