@@ -693,27 +693,62 @@ async function callGemini(p, prompt) {
 
 /* ---------------------- CUSTOM PROVIDER ---------------------- */
 async function callCustom(p, prompt) {
-    const r = await fetch(p.model, {
-        method: "POST",
-        headers: {
-            "Authorization": "Bearer " + p.apiKey,
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            messages: [{ role: "user", content: prompt }]
-        })
-    });
+    const payload = {
+        // Most custom endpoints accept "prompt"
+        prompt: prompt,
+        // Some accept "input"
+        input: prompt,
+        // Some accept "messages" (OpenAI style)
+        messages: [{ role: "user", content: prompt }]
+    };
 
-    if (!r.ok) throw new Error("Custom provider error");
+    const headers = {
+        "Content-Type": "application/json"
+    };
+
+    // Only set Authorization if user provided a key
+    if (p.apiKey) {
+        headers["Authorization"] = "Bearer " + p.apiKey;
+        headers["x-api-key"] = p.apiKey; // Many endpoints use this
+    }
+
+    let r;
+    try {
+        r = await fetch(p.model, {
+            method: "POST",
+            headers,
+            body: JSON.stringify(payload)
+        });
+    } catch (err) {
+        throw new Error(
+            "Custom provider network error.\n" +
+            "Likely causes:\n" +
+            "- CORS blocked (server must allow browser requests)\n" +
+            "- Wrong URL (must be HTTPS)\n" +
+            "- Wrong headers\n\n" +
+            "Full error: " + err.message
+        );
+    }
+
+    if (!r.ok) {
+        const msg = await r.text();
+        throw new Error("Custom provider error: " + msg);
+    }
 
     const json = await r.json();
+
+    // Try to extract any reasonable text
     const text =
+        json.output ||
+        json.text ||
+        json.response ||
         json.choices?.[0]?.message?.content ||
+        json.choices?.[0]?.text ||
         json.content?.[0]?.text ||
         JSON.stringify(json);
 
-    const inTok = json.usage?.prompt_tokens || estTokens(prompt);
-    const outTok = json.usage?.completion_tokens || estTokens(text);
+    const inTok = json.usage?.input_tokens || estTokens(prompt);
+    const outTok = json.usage?.output_tokens || estTokens(text);
 
     return {
         text,
@@ -722,7 +757,6 @@ async function callCustom(p, prompt) {
         cost: inTok * p.inCost + outTok * p.outCost
     };
 }
-
 /* -------------------------- CLEAR DATA ------------------------ */
 function clearAllData() {
     if (!confirm("Clear ALL data?")) return;
