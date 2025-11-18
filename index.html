@@ -637,25 +637,31 @@ async function callAnthropic(p, prompt) {
     };
 }
     
-/* ---------------------- GEMINI (v1 + fallback to v1beta) ---------------------- */
+/* ---------------------- GEMINI (v1beta first) ---------------------- */
 async function callGemini(p, prompt) {
-    // Primary endpoint (v1)
-    const url1 = `https://generativelanguage.googleapis.com/v1/models/${p.model}:generateContent?key=${p.apiKey}`;
-
     const body = {
-        contents: [{ role: "user", parts: [{ text: prompt }] }]
+        contents: [
+            {
+                role: "user",
+                parts: [{ text: prompt }]
+            }
+        ]
     };
 
-    let r = await fetch(url1, {
+    // Try v1beta first (most models only work here)
+    const urlBeta = `https://generativelanguage.googleapis.com/v1beta/models/${p.model}:generateContent?key=${p.apiKey}`;
+
+    let r = await fetch(urlBeta, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body)
     });
 
-    // Fallback to v1beta if needed
+    // Try v1 fallback only if v1beta failed
     if (!r.ok) {
-        const url2 = `https://generativelanguage.googleapis.com/v1beta/models/${p.model}:generateContent?key=${p.apiKey}`;
-        r = await fetch(url2, {
+        const urlV1 = `https://generativelanguage.googleapis.com/v1/models/${p.model}:generateContent?key=${p.apiKey}`;
+
+        r = await fetch(urlV1, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body)
@@ -668,7 +674,11 @@ async function callGemini(p, prompt) {
     }
 
     const json = await r.json();
-    const text = json.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+    const text =
+        json.candidates?.[0]?.content?.parts?.[0]?.text ||
+        json.candidates?.[0]?.output ||
+        "";
 
     const inTok = estTokens(prompt);
     const outTok = estTokens(text);
