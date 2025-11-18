@@ -562,8 +562,9 @@ async function callLLM(p, prompt) {
 }
 
 /* ---------------------- OPENAI ---------------------- */
+/* ---------------------- OPENAI ---------------------- */
 async function callOpenAI(p, prompt) {
-    const r = await fetch("https://api.openai.com/v1/chat/completions", {
+    const r = await fetch("https://api.openai.com/v1/responses", {
         method: "POST",
         headers: {
             "Authorization": "Bearer " + p.apiKey,
@@ -571,20 +572,27 @@ async function callOpenAI(p, prompt) {
         },
         body: JSON.stringify({
             model: p.model,
-            messages: [{ role: "user", content: prompt }]
+            input: prompt,
+            max_output_tokens: 1024
         })
     });
 
-    if (!r.ok) throw new Error("OpenAI error");
+    if (!r.ok) {
+        const msg = await r.text();
+        throw new Error("OpenAI error: " + msg);
+    }
 
     const json = await r.json();
 
+    const text = json.output_text || "";
+    const inTok = json.usage?.input_tokens || estTokens(prompt);
+    const outTok = json.usage?.output_tokens || estTokens(text);
+
     return {
-        text: json.choices[0].message.content,
-        inTok: json.usage.prompt_tokens,
-        outTok: json.usage.completion_tokens,
-        cost: json.usage.prompt_tokens * p.inCost +
-              json.usage.completion_tokens * p.outCost
+        text,
+        inTok,
+        outTok,
+        cost: inTok * p.inCost + outTok * p.outCost
     };
 }
 
