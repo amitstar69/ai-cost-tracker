@@ -1,73 +1,59 @@
-# AI Cost Tracker (Privacy‑first, Client‑side)
+# 📉 AI Cost Tracker (Privacy-First & Local-Only)
 
-A single‑file app that tracks your OpenAI and Anthropic usage and costs locally in your browser. No servers, no telemetry, no backend.
+**The unified dashboard for your LLM spending. Zero backend. Zero tracking. 100% Open Source.**
 
-## Features
-- Add and manage API keys (stored in `localStorage`, never sent to us)
-- Real‑time cost tracking per provider/model
-- 7‑day cost trend chart (Chart.js)
-- Playground to send test messages and auto‑log usage
-- Export all data as JSON
-- Light/Dark theme
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Privacy](https://img.shields.io/badge/privacy-100%25%20local-green.svg)
+![Stack](https://img.shields.io/badge/stack-HTML%2FJS-orange.svg)
 
-## Quick Start
-1. Download `index.html`
-2. Double‑click to open it in your browser
-3. Click **Add API Provider** and paste your key(s)
-4. Use the **Playground** to make a request
-5. Watch your dashboard update
+## 😫 The Problem
+To check your AI spending today, you have to:
+1. Log into OpenAI.
+2. Log into Anthropic.
+3. Log into OpenRouter/Google/DeepSeek.
+4. Add it all up manually.
 
-> Keys and usage data live only in this browser profile.
+## 🚀 The Solution
+**AI Cost Tracker** is a single-file HTML application that runs entirely in your browser. It connects directly to API endpoints to track usage and estimate costs in real-time as you test prompts.
 
-## Deploy on GitHub Pages
-1. Create a repo named `ai-cost-tracker`
-2. Upload `index.html` (and this `README.md` if you like)
-3. In **Settings → Pages**, set **Deploy from a branch**, source **main** at `/ (root)`
-4. Wait a minute, then visit: `https://YOUR-USERNAME.github.io/ai-cost-tracker/`
+### ✨ Key Features
+*   **Unified Dashboard:** Track OpenAI, Gemini, and Custom (Ollama/LocalAI) costs in one view.
+*   **Privacy First:** API keys are stored in your browser's `localStorage`. Nothing is ever sent to our servers (because we don't have one).
+*   **Playground:** Test prompts with Markdown rendering support.
+*   **Real-Time Estimates:** See how much a prompt will cost *before* you send it.
+*   **Ollama Ready:** Treat your local models like paid APIs to calculate "theoretical" savings.
 
-## Pricing Notes
-Pricing tables are defined per‑token in the script and can be updated as needed.
-Edit the `OPENAI_PRICING` and `ANTHROPIC_PRICING` objects.
+## 🛠️ Quick Start
+There are two ways to use this:
 
-## Security
-- No analytics, no third‑party calls other than LLM APIs
-- Keys are masked in UI
-- Clear all data from **Settings → Clear all data**
+### Option A: The 30-Second Setup (Recommended)
+1.  [Click here to view the live app](https://YOUR-USERNAME.github.io/REPO-NAME).
+2.  Click **+ Add Provider**.
+3.  Enter your API Key (e.g., OpenAI) or Local URL (Ollama).
+4.  Start typing in the Playground.
 
-## Extend
-- Add more providers by adding a pricing map and API call function
-- Add budget alerts by scanning totals on each render
-- Add CSV export by converting the JSON to CSV
+### Option B: Run Locally (For maximum paranoia)
+1.  Download the `index.html` file from this repository.
+2.  Disconnect your internet (optional, to verify safety).
+3.  Double-click `index.html` to open it in your browser.
+
+## 🔒 Security & Privacy
+We take security seriously. Here is how this app works:
+*   **Client-Side Only:** This app is a static HTML file. There is no database and no backend server.
+*   **Network Activity:** Open your browser's "Network" tab. You will see requests *only* to the APIs you configure (e.g., `api.openai.com`) and `cdn.tailwindcss.com` for styling.
+*   **Key Storage:** Keys are saved in `localStorage`. Clearing your browser cache wipes them instantly.
+
+## ⚠️ Important Note on CORS
+Some providers (like **Anthropic**) block browser-based API calls for security.
+*   **OpenAI / Gemini / OpenRouter:** Work out of the box.
+*   **Ollama / LM Studio:** Work out of the box (ensure CORS is enabled locally).
+*   **Anthropic:** Requires a local proxy. We recommend using OpenRouter or a proxy server if you need Claude in the browser.
+
+## 🤝 Contributing
+Missing a feature? Found a bug?
+1.  Fork this repo.
+2.  Edit `index.html` directly.
+3.  Submit a PR.
 
 ---
-
-Built following the provided implementation spec.
-
-### Provider Setup & Testing
-
-#### OpenAI (GPT-4o / GPT-4o-mini)
-- Click **Add API Provider** and select **OpenAI**.
-- Enter your model name, e.g., `gpt-4o` or `gpt-4o-mini`.
-- Set the input and output cost per million tokens using current OpenAI pricing.
-- Paste your OpenAI API key (starts with `sk-`). Keys not starting with `sk-` will trigger an invalid-key alert.
-- Optionally add a nickname to identify the key.
-- Save the provider, then open the **Playground**, select your OpenAI provider, and send a test prompt. The dashboard will update with token and cost data.
-
-#### Anthropic (Claude models)
-- Click **Add API Provider** and select **Anthropic**.
-- Enter your model name, such as `claude-3-sonnet-20240229` or `claude-3-haiku-20240307`.
-- Set the input and output costs per million tokens according to Anthropic’s pricing.
-- Paste your Anthropic API key (prefix `sk-ant-` or `sk-`). The app validates the prefix and will warn if the key format is incorrect.
-- Provide a nickname if desired and save the provider.
-- Use the **Playground** to send a message with your Anthropic provider. The dashboard should reflect usage and cost.
-
-#### Gemini / Custom Providers
-- Choose **Custom** in the **Add API Provider** modal for Gemini or other custom models.
-- Fill in provider name (e.g., `Gemini`), endpoint URL, model name, and pricing (input/output cost per million tokens).
-- Paste your API key (no prefix validation for custom providers).
-- Save and test via the **Playground**. Token estimates and costs will be computed using the heuristic estimator built into the app.
-
-### Notes
-- Version 2.1 introduces token estimation, usage event logging, and cost aggregation for today, this week, this month, and all time.
-- All data (API keys and usage history) stays in your browser’s local storage and is never sent to any server.
-- You can clear all stored data via the **Settings** modal.
+*Built for developers who hate fragmented billing.*
