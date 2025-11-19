@@ -9,29 +9,31 @@
     <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-        body {
-            font-family: 'Inter', sans-serif;
-        }
+body {
+    font-family: 'Inter', sans-serif;
+}
 
-        .modal {
-            display: none;
-        }
+/* FORCE modal visibility — overrides Tailwind */
+.modal {
+    display: none !important;
+}
 
-        .modal.active {
-            display: flex;
-        }
+.modal.active {
+    display: flex !important;
+}
 
-        .glass {
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(14px);
-        }
+.glass {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(14px);
+}
 
-        .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-    </style>
+.gradient-bg {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+</style>
+
 </head>
 
 <body class="bg-gray-950 text-white min-h-screen">
