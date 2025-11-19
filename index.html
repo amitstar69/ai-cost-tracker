@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI Cost Tracker v5.0 (Smart UX)</title>
+    <title>AI Cost Tracker v6.0 (Streaming & Health Check)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
@@ -18,6 +18,18 @@
         .prose p { margin-bottom: 0.75rem; }
         .prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 0.75rem; }
         .prose strong { color: #fff; font-weight: 600; }
+
+        /* Spinner for streaming */
+        .stream-cursor { 
+            display: inline-block; 
+            width: 0.5em; 
+            height: 1.2em; 
+            background-color: #fff; 
+            animation: blink 0.7s infinite; 
+            margin-left: 2px;
+            vertical-align: middle;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
     </style>
 </head>
 <body class="bg-gray-950 text-white min-h-screen pb-20">
@@ -27,12 +39,13 @@
             <div class="flex items-center gap-3">
                 <div class="text-2xl">📉</div>
                 <div>
-                    <h1 class="text-xl font-bold">AI Cost Tracker <span class="text-xs bg-green-900 text-green-200 px-2 py-0.5 rounded">v5.0</span></h1>
+                    <h1 class="text-xl font-bold">AI Cost Tracker <span class="text-xs bg-green-900 text-green-200 px-2 py-0.5 rounded">v6.0</span></h1>
                 </div>
             </div>
             <div class="flex gap-2">
                 <button onclick="exportData()" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded text-sm border border-gray-700">Export</button>
                 <button onclick="openSettings()" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded text-sm border border-gray-700">⚙️</button>
+                <button onclick="openAboutModal()" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded text-sm border border-gray-700">?</button>
             </div>
         </div>
     </header>
@@ -66,8 +79,8 @@
                 </button>
             </div>
             
-            <div id="providerList" class="grid gap-3">
-                </div>
+            <div id="providerList" class="grid gap-3"></div>
+            
             <div id="emptyProviders" class="hidden text-center py-12 border-2 border-dashed border-gray-800 rounded-xl bg-gray-900/30">
                 <p class="text-gray-500 font-medium">No APIs connected yet.</p>
                 <p class="text-gray-600 text-sm mt-1">Connect OpenRouter, Gemini, or Ollama to start.</p>
@@ -86,7 +99,7 @@
             </div>
             
             <div class="p-4">
-                <textarea id="promptInput" class="w-full bg-gray-950 text-gray-200 p-4 rounded-lg border border-gray-800 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none resize-none h-40 font-mono text-sm transition-all" placeholder="Type your prompt here..."></textarea>
+                <textarea id="promptInput" class="w-full bg-gray-950 text-gray-200 p-4 rounded-lg border border-gray-800 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none resize-none h-40 font-mono text-sm transition-all" placeholder="Type your prompt here... (Cmd/Ctrl+Enter to send)"></textarea>
                 
                 <div class="flex justify-end mt-3">
                     <button id="sendBtn" onclick="runPrompt()" class="px-6 py-2.5 bg-white text-black hover:bg-gray-200 font-bold rounded-lg transition flex items-center gap-2 shadow-lg shadow-white/10">
@@ -100,9 +113,19 @@
                     <span>RESULT</span>
                     <span id="runStats">0 tokens • $0.0000</span>
                 </div>
-                <div id="outputContent" class="prose prose-invert max-w-none text-sm text-gray-300 leading-relaxed"></div>
+                <div id="outputContent" class="prose prose-invert max-w-none text-sm text-gray-300 leading-relaxed min-h-8"></div>
             </div>
         </div>
+
+        <div class="mt-8 bg-gray-900 rounded-xl border border-gray-800 overflow-hidden shadow-2xl">
+            <div class="p-4 border-b border-gray-800 bg-gray-800/50 flex justify-between items-center">
+                <h2 class="font-semibold text-gray-200">Recent Activity (Last 10)</h2>
+            </div>
+            <div id="historyLog" class="p-4 space-y-3">
+                <p class="text-gray-500 text-center text-sm italic">No recent usage found.</p>
+            </div>
+        </div>
+
     </main>
 
     <div id="modalAdd" class="modal fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-sm">
@@ -123,8 +146,7 @@
 
             <div id="smartModelContainer">
                 <label class="text-xs text-gray-400 uppercase font-bold block mb-1.5">Model</label>
-                <select id="pPreset" class="w-full bg-gray-950 border border-gray-700 rounded-lg p-3 mb-4 text-sm focus:border-purple-500 outline-none text-white">
-                    </select>
+                <select id="pPreset" class="w-full bg-gray-950 border border-gray-700 rounded-lg p-3 mb-4 text-sm focus:border-purple-500 outline-none text-white"></select>
                 <p class="text-xs text-gray-500 mb-4 -mt-2">Prices are auto-calculated.</p>
             </div>
 
@@ -149,10 +171,12 @@
 
             <div id="apiKeyContainer">
                 <label class="text-xs text-gray-400 uppercase font-bold block mb-1.5">API Key</label>
-                <input id="pKey" type="password" class="w-full bg-gray-950 border border-gray-700 rounded-lg p-3 mb-6 text-sm focus:border-purple-500 outline-none" placeholder="sk-...">
+                <input id="pKey" type="password" class="w-full bg-gray-950 border border-gray-700 rounded-lg p-3 mb-4 text-sm focus:border-purple-500 outline-none" placeholder="sk-...">
             </div>
+            
+            <div id="healthCheckStatus" class="hidden text-xs text-red-400 bg-red-900/20 p-3 rounded-lg border border-red-900 mb-4 transition-all"></div>
 
-            <button onclick="saveProvider()" class="w-full py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-bold text-white transition shadow-lg shadow-purple-900/20">
+            <button id="modalConnectBtn" onclick="saveProvider()" class="w-full py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-bold text-white transition shadow-lg shadow-purple-900/20">
                 Connect
             </button>
         </div>
@@ -161,53 +185,86 @@
     <div id="modalSettings" class="modal fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-sm">
         <div class="bg-gray-900 w-full max-w-sm rounded-xl border border-gray-800 p-6">
             <h3 class="text-xl font-bold mb-4">Settings</h3>
-            <button onclick="clearData()" class="w-full py-3 bg-red-900/20 text-red-400 border border-red-900/50 hover:bg-red-900/40 rounded-lg mb-3 font-medium transition">
-                ⚠️ Clear All Data
+            
+            <button onclick="clearUsageOnly()" class="w-full py-3 bg-blue-900/20 text-blue-400 border border-blue-900/50 hover:bg-blue-900/40 rounded-lg mb-3 font-medium transition">
+                Clear Usage History Only
             </button>
-            <button onclick="document.getElementById('modalSettings').classList.remove('active')" class="w-full py-3 bg-gray-800 hover:bg-gray-700 rounded-lg font-medium">
+
+            <button onclick="clearData()" class="w-full py-3 bg-red-900/20 text-red-400 border border-red-900/50 hover:bg-red-900/40 rounded-lg mb-3 font-medium transition">
+                ⚠️ Clear ALL Data (Keys & History)
+            </button>
+            <button onclick="closeSettings()" class="w-full py-3 bg-gray-800 hover:bg-gray-700 rounded-lg font-medium">
                 Close
             </button>
         </div>
     </div>
 
+    <div id="modalAbout" class="modal fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-sm">
+        <div class="bg-gray-900 w-full max-w-xl rounded-xl border border-gray-800 shadow-2xl p-6 transition-all">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold">About AI Cost Tracker</h3>
+                <button onclick="closeAboutModal()" class="text-gray-500 hover:text-white text-xl">&times;</button>
+            </div>
+            <div class="prose prose-invert text-sm text-gray-300 leading-relaxed">
+                <p>The **AI Cost Tracker** is a minimal, client-side tool designed to give you **transparent, real-time control** over your AI service spending. It lets you consolidate usage from various commercial and self-hosted models into a single, unified view.</p>
+                
+                <h4>🛡️ Privacy and Data Security</h4>
+                <p>The core principle of the AI Cost Tracker is **complete data sovereignty**.</p>
+                <ul>
+                    <li>**No Cloud Storage:** We do not use any database, server, or cloud service to store your usage data or API keys.</li>
+                    <li>**Local Storage Only:** All your configuration (API keys, models, usage history, and settings) is stored exclusively in your browser's **Local Storage** and never leaves your device.</li>
+                    <li>**Direct API Calls:** When you run a prompt, your browser communicates **directly** with the selected AI provider (e.g., OpenAI or Gemini). The data is **never proxied** through or recorded by this application.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+
     <script>
-        /* ---------------- DATA & PRESETS ---------------- */
-        
-        // PRICING PRESETS (Prices per 1M Tokens as of late 2024)
-        // This removes the need for manual entry
+        // Data and Presets (Same as before, good to keep external pricing here)
         const PRESETS = {
             'openrouter': [
-                { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', in: 3.00, out: 15.00 },
-                { id: 'openai/gpt-4o', name: 'GPT-4o', in: 5.00, out: 15.00 },
-                { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini', in: 0.15, out: 0.60 },
-                { id: 'google/gemini-flash-1.5', name: 'Gemini Flash 1.5', in: 0.075, out: 0.30 },
-                { id: 'meta-llama/llama-3.1-70b-instruct', name: 'Llama 3.1 70B', in: 0.4, out: 0.4 }
+                { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', in: 3.00, out: 15.00, emoji: '🔥' },
+                { id: 'openai/gpt-4o', name: 'GPT-4o', in: 5.00, out: 15.00, emoji: '🧠' },
+                { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini', in: 0.15, out: 0.60, emoji: '⚙️' },
+                { id: 'google/gemini-flash-1.5', name: 'Gemini Flash 1.5', in: 0.075, out: 0.30, emoji: '⚡' },
+                { id: 'meta-llama/llama-3.1-70b-instruct', name: 'Llama 3.1 70B', in: 0.4, out: 0.4, emoji: '🦙' }
             ],
             'openai': [
-                { id: 'gpt-4o', name: 'GPT-4o', in: 5.00, out: 15.00 },
-                { id: 'gpt-4o-mini', name: 'GPT-4o Mini', in: 0.15, out: 0.60 }
+                { id: 'gpt-4o', name: 'GPT-4o', in: 5.00, out: 15.00, emoji: '🧠' },
+                { id: 'gpt-4o-mini', name: 'GPT-4o Mini', in: 0.15, out: 0.60, emoji: '⚙️' }
             ],
             'gemini': [
-                { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', in: 0.075, out: 0.30 },
-                { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', in: 3.50, out: 10.50 }
+                { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', in: 0.075, out: 0.30, emoji: '⚡' },
+                { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', in: 3.50, out: 10.50, emoji: '🚀' }
             ],
             'ollama': [
-                { id: 'llama3', name: 'Llama 3 (Local)', in: 0, out: 0 },
-                { id: 'mistral', name: 'Mistral (Local)', in: 0, out: 0 }
+                { id: 'llama3', name: 'Llama 3 (Local)', in: 0, out: 0, emoji: '🏠' },
+                { id: 'mistral', name: 'Mistral (Local)', in: 0, out: 0, emoji: '🏠' }
             ]
         };
 
         let providers = JSON.parse(localStorage.getItem('act_providers') || '[]');
         let usage = JSON.parse(localStorage.getItem('act_usage') || '[]');
+        const decoder = new TextDecoder("utf-8");
+        const TOKEN_EST_FACTOR = 4; // Approx chars per token
 
-        /* ---------------- INITIALIZATION ---------------- */
+        /* ---------------- INITIALIZATION & STATE ---------------- */
         document.addEventListener('DOMContentLoaded', () => {
             renderUI();
-            updateModalUI(); // Init modal state
+            updateModalUI(); 
             
             // Listeners for real-time estimation
             document.getElementById('promptInput').addEventListener('input', updateEstimate);
             document.getElementById('activeProvider').addEventListener('change', updateEstimate);
+
+            // Listener for keyboard shortcut (Cmd/Ctrl + Enter)
+            document.getElementById('promptInput').addEventListener('keydown', (e) => {
+                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    runPrompt();
+                }
+            });
         });
 
         function saveState() {
@@ -216,90 +273,10 @@
             renderUI();
         }
 
-        /* ---------------- UI LOGIC ---------------- */
+        /* ---------------- UI RENDERING ---------------- */
         
-        // Modal: Toggle fields based on provider type
-        function updateModalUI() {
-            const type = document.getElementById('pType').value;
-            const smartContainer = document.getElementById('smartModelContainer');
-            const customContainer = document.getElementById('customFields');
-            const keyContainer = document.getElementById('apiKeyContainer');
-            const presetSelect = document.getElementById('pPreset');
-            
-            // 1. Handle Fields Visibility
-            if (type === 'custom') {
-                smartContainer.classList.add('hidden');
-                customContainer.classList.remove('hidden');
-                keyContainer.classList.remove('hidden');
-            } else if (type === 'ollama') {
-                smartContainer.classList.remove('hidden');
-                customContainer.classList.add('hidden');
-                keyContainer.classList.add('hidden'); // Ollama usually no key
-            } else {
-                smartContainer.classList.remove('hidden');
-                customContainer.classList.add('hidden');
-                keyContainer.classList.remove('hidden');
-            }
-
-            // 2. Populate Dropdown from Presets
-            if (type !== 'custom') {
-                presetSelect.innerHTML = '';
-                const list = PRESETS[type] || [];
-                list.forEach(m => {
-                    const opt = document.createElement('option');
-                    opt.value = JSON.stringify(m); // Store full object in value
-                    opt.innerText = m.name;
-                    presetSelect.appendChild(opt);
-                });
-            }
-        }
-
-        function saveProvider() {
-            const type = document.getElementById('pType').value;
-            let name, modelId, inPrice, outPrice, baseUrl, apiKey;
-
-            if (type === 'custom') {
-                // Read Manual Fields
-                modelId = document.getElementById('pModelRaw').value;
-                baseUrl = document.getElementById('pUrl').value;
-                inPrice = parseFloat(document.getElementById('pIn').value) || 0;
-                outPrice = parseFloat(document.getElementById('pOut').value) || 0;
-                name = "Custom (" + modelId + ")";
-                apiKey = document.getElementById('pKey').value;
-                if (!baseUrl) return alert("Base URL required for Custom.");
-            } else {
-                // Read Preset Data
-                const presetData = JSON.parse(document.getElementById('pPreset').value);
-                modelId = presetData.id;
-                name = presetData.name;
-                inPrice = presetData.in;
-                outPrice = presetData.out;
-                
-                // Set Default URLs
-                if (type === 'ollama') baseUrl = 'http://localhost:11434/v1';
-                else if (type === 'openrouter') baseUrl = 'https://openrouter.ai/api/v1';
-                else if (type === 'openai') baseUrl = 'https://api.openai.com/v1';
-                // Gemini handled specially in fetch
-                
-                apiKey = document.getElementById('pKey').value;
-            }
-
-            if (type !== 'ollama' && !apiKey) return alert("API Key required.");
-
-            providers.push({
-                id: Date.now().toString(),
-                type, name, model: modelId, apiKey, baseUrl, inPrice, outPrice, totalCost: 0
-            });
-            
-            saveState();
-            closeAddModal();
-            
-            // Reset inputs
-            document.getElementById('pKey').value = '';
-        }
-
         function renderUI() {
-            // Stats
+            // Calculate Stats
             const now = new Date();
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
             const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -309,10 +286,10 @@
             
             document.getElementById('statToday').innerText = `$${todayCost.toFixed(4)}`;
             document.getElementById('statMonth').innerText = `$${monthCost.toFixed(4)}`;
-            document.getElementById('statRequests').innerText = usage.length;
+            document.getElementById('statRequests').innerText = usage.length.toLocaleString();
             document.getElementById('statTokens').innerText = usage.reduce((a,b) => a + b.inTok + b.outTok, 0).toLocaleString();
 
-            // Provider List
+            // Render Providers & Dropdown
             const list = document.getElementById('providerList');
             const empty = document.getElementById('emptyProviders');
             const select = document.getElementById('activeProvider');
@@ -329,6 +306,9 @@
                     // List Item
                     const div = document.createElement('div');
                     div.className = 'bg-gray-900 p-4 rounded-lg border border-gray-800 flex justify-between items-center group hover:border-gray-700 transition';
+                    const totalCost = usage.filter(u => u.pid === p.id).reduce((a,b) => a + b.cost, 0);
+                    p.totalCost = totalCost; // Update total cost on provider object
+                    
                     div.innerHTML = `
                         <div class="flex items-center gap-3">
                             <div class="h-10 w-10 rounded-full bg-gradient-to-br from-gray-800 to-black border border-gray-700 flex items-center justify-center font-bold text-gray-400">
@@ -340,7 +320,7 @@
                             </div>
                         </div>
                         <div class="text-right">
-                             <p class="text-xs text-gray-400 font-mono mb-1">$${p.totalCost?.toFixed(4)}</p>
+                             <p class="text-xs text-gray-400 font-mono mb-1">$${totalCost.toFixed(4)}</p>
                              <button onclick="deleteProvider('${p.id}')" class="text-xs text-red-900 hover:text-red-400 transition">Remove</button>
                         </div>
                     `;
@@ -354,29 +334,195 @@
                 });
                 select.value = savedVal;
             }
+
+            // Render History Log (New Feature)
+            renderHistoryLog();
         }
 
-        function updateEstimate() {
-            const text = document.getElementById('promptInput').value;
-            const pid = document.getElementById('activeProvider').value;
-            const display = document.getElementById('estCost');
+        function renderHistoryLog() {
+            const logDiv = document.getElementById('historyLog');
+            const recentUsage = usage.slice().sort((a,b) => b.id - a.id).slice(0, 10);
             
-            if (!text || !pid) {
-                display.innerText = '$0.0000 est.';
-                display.className = "text-xs text-gray-500 font-mono";
+            if (recentUsage.length === 0) {
+                logDiv.innerHTML = '<p class="text-gray-500 text-center text-sm italic">No recent usage found.</p>';
+                return;
+            }
+
+            logDiv.innerHTML = recentUsage.map(u => {
+                const p = providers.find(x => x.id === u.pid);
+                const pName = p ? p.name.split('(')[0].trim() : 'Deleted Provider';
+                const date = new Date(u.ts).toLocaleTimeString();
+
+                return `
+                    <div class="flex justify-between items-center text-xs font-mono bg-gray-950 p-3 rounded-lg border border-gray-800">
+                        <div class="flex flex-col">
+                            <span class="text-gray-300 font-semibold">${pName}</span>
+                            <span class="text-gray-500">${p ? p.model : 'N/A'}</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-green-400 font-bold">$${u.cost.toFixed(6)}</span>
+                            <span class="text-gray-500 ml-2">(${u.inTok + u.outTok} toks)</span>
+                            <span class="text-gray-600 ml-2">${date}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        /* ---------------- MODAL & LIFECYCLE ---------------- */
+
+        function updateModalUI() {
+            const type = document.getElementById('pType').value;
+            const smartContainer = document.getElementById('smartModelContainer');
+            const customContainer = document.getElementById('customFields');
+            const keyContainer = document.getElementById('apiKeyContainer');
+            const presetSelect = document.getElementById('pPreset');
+            
+            // 1. Handle Fields Visibility
+            const isCustom = type === 'custom';
+            const isOllama = type === 'ollama';
+
+            smartContainer.classList.toggle('hidden', isCustom);
+            customContainer.classList.toggle('hidden', !isCustom);
+            keyContainer.classList.toggle('hidden', isOllama && !isCustom); // Ollama usually no key
+            
+            // 2. Populate Dropdown from Presets
+            if (!isCustom) {
+                presetSelect.innerHTML = '';
+                const list = PRESETS[type] || [];
+                list.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = JSON.stringify(m); 
+                    opt.innerText = `${m.emoji || ''} ${m.name}`;
+                    presetSelect.appendChild(opt);
+                });
+            }
+        }
+
+        async function saveProvider() {
+            const type = document.getElementById('pType').value;
+            let name, modelId, inPrice, outPrice, baseUrl, apiKey;
+            const btn = document.getElementById('modalConnectBtn');
+            const statusDiv = document.getElementById('healthCheckStatus');
+
+            statusDiv.classList.add('hidden');
+            btn.disabled = true;
+            btn.innerText = "Testing Connection...";
+
+            // 1. Prepare Provider Object
+            if (type === 'custom') {
+                modelId = document.getElementById('pModelRaw').value;
+                baseUrl = document.getElementById('pUrl').value;
+                inPrice = parseFloat(document.getElementById('pIn').value) || 0;
+                outPrice = parseFloat(document.getElementById('pOut').value) || 0;
+                name = "Custom (" + modelId + ")";
+                apiKey = document.getElementById('pKey').value;
+                if (!baseUrl) {
+                    statusDiv.innerText = "Error: Base URL required for Custom.";
+                    statusDiv.classList.remove('hidden');
+                    btn.disabled = false;
+                    btn.innerText = "Retry Connect";
+                    return;
+                }
+            } else {
+                const presetData = JSON.parse(document.getElementById('pPreset').value);
+                modelId = presetData.id;
+                name = presetData.name;
+                inPrice = presetData.in;
+                outPrice = presetData.out;
+                
+                if (type === 'ollama') baseUrl = 'http://localhost:11434/v1';
+                else if (type === 'openrouter') baseUrl = 'https://openrouter.ai/api/v1';
+                else if (type === 'openai') baseUrl = 'https://api.openai.com/v1';
+                
+                apiKey = document.getElementById('pKey').value;
+            }
+
+            if (type !== 'ollama' && !apiKey) {
+                statusDiv.innerText = "Error: API Key required.";
+                statusDiv.classList.remove('hidden');
+                btn.disabled = false;
+                btn.innerText = "Retry Connect";
                 return;
             }
             
-            const p = providers.find(x => x.id === pid);
-            const tokens = Math.ceil(text.length / 4);
-            const cost = (tokens / 1_000_000) * p.inPrice;
+            const newProvider = { id: Date.now().toString(), type, name, model: modelId, apiKey, baseUrl, inPrice, outPrice, totalCost: 0 };
             
-            display.innerText = `~${tokens} toks • $${cost.toFixed(6)} est.`;
-            display.className = "text-xs text-green-400 font-mono font-bold";
+            // 2. Run Health Check
+            const healthCheck = await pingProvider(newProvider);
+
+            if (healthCheck === true) {
+                providers.push(newProvider);
+                saveState();
+                
+                statusDiv.innerText = `Success! ${newProvider.name} connected.`;
+                statusDiv.classList.remove('hidden');
+                statusDiv.classList.replace('text-red-400', 'text-green-400');
+                statusDiv.classList.replace('bg-red-900/20', 'bg-green-900/20');
+
+                // Wait a moment for user to see success, then close
+                setTimeout(() => {
+                    closeAddModal();
+                    document.getElementById('pKey').value = '';
+                    statusDiv.classList.add('hidden');
+                }, 1000);
+            } else {
+                // Failure: display actionable error
+                statusDiv.innerText = healthCheck;
+                statusDiv.classList.remove('hidden');
+                statusDiv.classList.replace('text-green-400', 'text-red-400');
+                statusDiv.classList.replace('bg-green-900/20', 'bg-red-900/20');
+                btn.disabled = false;
+                btn.innerText = "Retry Connect";
+            }
         }
 
-        /* ---------------- API LOGIC ---------------- */
-        
+        function clearUsageOnly() {
+            if(confirm('Delete all usage history? This will not delete your API keys.')) { 
+                usage = []; 
+                saveState(); 
+                closeSettings();
+            }
+        }
+
+        /* ---------------- API CALLS & STREAMING ---------------- */
+
+        async function pingProvider(p) {
+            try {
+                if (p.type === 'gemini') {
+                    // Gemini ping: minimal request
+                    await callGemini(p, 'ping', true); 
+                } else {
+                    // Standard ping: minimal request
+                    await callStandard(p, 'ping', true);
+                }
+                return true;
+            } catch (e) {
+                return parseApiError(e.message, p.type);
+            }
+        }
+
+        function parseApiError(errorText, type) {
+            const statusMatch = errorText.match(/Status: (\d+)/);
+            const status = statusMatch ? parseInt(statusMatch[1]) : null;
+            
+            if (status === 401 || status === 403 || errorText.includes('401') || errorText.includes('403')) {
+                return `**Connection Failed (401/403)**: Invalid API Key or Permissions.\n\n**Action:** Check your key for typos. Generate a new key if necessary.`;
+            }
+            if (status === 404 || errorText.includes('404')) {
+                return `**Connection Failed (404)**: Invalid Model ID or Base URL.\n\n**Action:** Verify the Base URL (e.g., ends in /v1) and that the Model ID exists for this provider.`;
+            }
+            if (type === 'ollama' && errorText.includes('Failed to fetch')) {
+                 return `**Connection Failed (Network)**: Could not reach Ollama server.\n\n**Action:** Ensure Ollama is running locally and that you launched it with \`OLLAMA_ORIGINS='*'\`.`;
+            }
+            if (errorText.includes('Failed to fetch') || errorText.includes('Timeout')) {
+                return `**Connection Failed (Network)**: Request timed out or was blocked by CORS.\n\n**Action:** Check your network, or try using OpenRouter (better browser support).`;
+            }
+
+            return `**Connection Failed (Unknown)**: ${errorText.substring(0, 100)}...\n\n**Action:** Check the provider's status page or review your setup.`;
+        }
+
+
         async function runPrompt() {
             const pid = document.getElementById('activeProvider').value;
             const prompt = document.getElementById('promptInput').value;
@@ -387,55 +533,98 @@
             const outArea = document.getElementById('outputArea');
             const outContent = document.getElementById('outputContent');
             const runStats = document.getElementById('runStats');
+            const startTime = performance.now();
 
-            btn.innerHTML = "Thinking..."; 
+            btn.innerHTML = "Thinking... ⚡️"; 
             btn.disabled = true;
             outArea.classList.remove('hidden');
-            outContent.innerHTML = '<span class="animate-pulse text-gray-500">Connecting to ' + p.name + '...</span>';
+            outContent.innerHTML = '<span class="animate-pulse text-gray-500">Connecting...</span>';
+            runStats.innerText = 'Calculating...';
+            
+            // Auto-scroll to the output area
+            outArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+
+            let fullText = "";
+            let inTok = 0;
+            let outTok = 0;
+            let cost = 0;
 
             try {
-                let result;
                 if (p.type === 'gemini') {
-                    result = await callGemini(p, prompt);
+                    // Use standard call for Gemini, as streaming logic needs complex handling
+                    const result = await callGemini(p, prompt, false);
+                    fullText = result.text;
+                    inTok = result.inTok;
+                    outTok = result.outTok;
+
+                    // Manual streaming simulation (since Gemini doesn't always provide usage in stream)
+                    outContent.innerHTML = '';
+                    await streamTextToUI(fullText, outContent);
+
                 } else {
-                    // OpenRouter, OpenAI, Ollama, Custom all use standard format
-                    result = await callStandard(p, prompt);
+                    // OpenRouter, OpenAI, Ollama, Custom: use streaming compatible call
+                    const streamResult = await callStandard(p, prompt, false);
+                    
+                    // Stream response to UI and calculate tokens/cost as it finishes
+                    outContent.innerHTML = '';
+                    const { text, usageMetrics } = await streamStandardResponse(streamResult, outContent);
+                    fullText = text;
+                    inTok = usageMetrics?.prompt_tokens || Math.ceil(prompt.length / TOKEN_EST_FACTOR);
+                    outTok = usageMetrics?.completion_tokens || Math.ceil(fullText.length / TOKEN_EST_FACTOR);
                 }
 
-                // Success
-                outContent.innerHTML = marked.parse(result.text);
-                const cost = (result.inTok / 1e6 * p.inPrice) + (result.outTok / 1e6 * p.outPrice);
+                // Final Cost Calculation
+                cost = (inTok / 1e6 * p.inPrice) + (outTok / 1e6 * p.outPrice);
                 
-                runStats.innerText = `In: ${result.inTok} • Out: ${result.outTok} • Cost: $${cost.toFixed(6)}`;
+                runStats.innerText = `In: ${inTok} • Out: ${outTok} • Cost: $${cost.toFixed(6)}`;
                 
                 // Update Storage
-                usage.push({ 
-                    id: Date.now(), pid: p.id, ts: new Date().toISOString(), 
-                    inTok: result.inTok, outTok: result.outTok, cost 
+                usage.push({ 
+                    id: Date.now(), pid: p.id, ts: new Date().toISOString(), 
+                    inTok, outTok, cost 
                 });
-                p.totalCost = (p.totalCost || 0) + cost;
                 saveState();
 
             } catch (e) {
                 outContent.innerHTML = `<div class="bg-red-900/20 border border-red-800 text-red-300 p-4 rounded-lg text-sm">
-                    <strong>Request Failed:</strong> ${e.message}<br/><br/>
-                    ${p.type === 'anthropic' || p.type === 'openai' ? 'Tip: Try using <b>OpenRouter</b> for better browser support.' : ''}
-                    ${p.type === 'ollama' ? 'Tip: Ensure Ollama is running with <code>OLLAMA_ORIGINS="*"</code>' : ''}
+                    <strong>Request Failed:</strong> ${parseApiError(e.message, p.type)}
                 </div>`;
+                runStats.innerText = `Error: ${(performance.now() - startTime).toFixed(0)}ms`;
+
             } finally {
                 btn.innerHTML = "Run Request";
                 btn.disabled = false;
             }
         }
 
-        async function callStandard(p, prompt) {
+        // Helper to simulate streaming for non-streamed responses (e.g., Gemini)
+        async function streamTextToUI(text, targetElement) {
+            let buffer = '';
+            for (let i = 0; i < text.length; i++) {
+                buffer += text[i];
+                if (i % 50 === 0 || i === text.length - 1) { // Update every 50 chars
+                    targetElement.innerHTML = marked.parse(buffer + '<span class="stream-cursor"></span>');
+                    await new Promise(resolve => setTimeout(resolve, 1)); // Throttle
+                }
+            }
+            targetElement.innerHTML = marked.parse(buffer); // Final render
+        }
+
+
+        // STANDARD API CALL (OpenAI, OpenRouter, Ollama, Custom)
+        async function callStandard(p, prompt, isPing) {
             const url = p.baseUrl.endsWith('/') ? `${p.baseUrl}chat/completions` : `${p.baseUrl}/chat/completions`;
             
-            const headers = { 
+            const headers = { 
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${p.apiKey}` 
             };
             
+            // Only add Authorization header if there is a key
+            if (p.apiKey) {
+                 headers["Authorization"] = `Bearer ${p.apiKey}`;
+            }
+
             // OpenRouter specific headers
             if (p.type === 'openrouter') {
                 headers["HTTP-Referer"] = window.location.href;
@@ -445,38 +634,117 @@
             const body = {
                 model: p.model,
                 messages: [{ role: "user", content: prompt }],
-                stream: false
+                stream: !isPing, // Enable streaming unless it's a ping
+                max_tokens: isPing ? 1 : undefined, // Limit output for ping
+                temperature: isPing ? 0.1 : undefined
             };
 
             const r = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
-            if (!r.ok) throw new Error(await r.text());
-            const json = await r.json();
-
-            const text = json.choices[0].message.content;
-            const inTok = json.usage?.prompt_tokens || prompt.length/4;
-            const outTok = json.usage?.completion_tokens || text.length/4;
-            return { text, inTok, outTok };
+            if (!r.ok) throw new Error(`Status: ${r.status}, Body: ${await r.text()}`);
+            
+            if (isPing) {
+                // For health check, just consume response body
+                await r.json(); 
+                return true;
+            }
+            
+            // Return Response object for streaming
+            return r;
         }
 
-        async function callGemini(p, prompt) {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${p.model}:generateContent?key=${p.apiKey}`;
+        // STANDARD API Streaming Response Handler
+        async function streamStandardResponse(response, targetElement) {
+            const reader = response.body.getReader();
+            let fullText = "";
+            let rawData = "";
+            let usageMetrics = null;
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value);
+                rawData += chunk;
+
+                // Process stream chunks
+                const lines = chunk.split('\n').filter(line => line.trim() !== '');
+                for (const line of lines) {
+                    if (line.startsWith('data:')) {
+                        let data = line.substring(5).trim();
+                        if (data === '[DONE]') continue;
+                        
+                        try {
+                            const json = JSON.parse(data);
+                            const content = json.choices?.[0]?.delta?.content || json.choices?.[0]?.text || '';
+                            const finalUsage = json.usage;
+
+                            if (content) {
+                                fullText += content;
+                                targetElement.innerHTML = marked.parse(fullText + '<span class="stream-cursor"></span>');
+                            }
+                            if (finalUsage) {
+                                usageMetrics = finalUsage;
+                            }
+                        } catch (e) {
+                            // Ignore parsing errors for incomplete stream chunks
+                        }
+                    }
+                }
+            }
+            
+            targetElement.innerHTML = marked.parse(fullText); // Final render
+            return { text: fullText, usageMetrics };
+        }
+
+
+        // GEMINI API CALL
+        async function callGemini(p, prompt, isPing) {
+            const modelPath = p.model.includes('/') ? p.model.replace(/\//g, '-') : p.model;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelPath}:generateContent?key=${p.apiKey}`;
+            
+            const body = { 
+                contents: [{ parts: [{ text: prompt }] }],
+                config: {
+                    maxOutputTokens: isPing ? 1 : undefined,
+                }
+            };
+            
             const r = await fetch(url, {
                 method: 'POST',
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                body: JSON.stringify(body)
             });
-            if (!r.ok) throw new Error(await r.text());
+            
+            if (!r.ok) throw new Error(`Status: ${r.status}, Body: ${await r.text()}`);
+            
             const json = await r.json();
+            
+            // Check for blocked/error response
+            if (!json.candidates || json.candidates.length === 0) {
+                 throw new Error("API returned no candidates. Content may be blocked or key invalid.");
+            }
+
+            if (isPing) return true;
+
             const text = json.candidates[0].content.parts[0].text;
-            return { text, inTok: Math.ceil(prompt.length/4), outTok: Math.ceil(text.length/4) };
+            
+            // Gemini doesn't reliably return usage in the main response, so we estimate
+            const inTok = Math.ceil(prompt.length / TOKEN_EST_FACTOR);
+            const outTok = Math.ceil(text.length / TOKEN_EST_FACTOR);
+
+            return { text, inTok, outTok };
         }
+
 
         // Standard Helpers
         function openAddModal() { document.getElementById('modalAdd').classList.add('active'); updateModalUI(); }
-        function closeAddModal() { document.getElementById('modalAdd').classList.remove('active'); }
+        function closeAddModal() { document.getElementById('modalAdd').classList.remove('active'); document.getElementById('modalConnectBtn').innerText = "Connect"; document.getElementById('modalConnectBtn').disabled = false; document.getElementById('healthCheckStatus').classList.add('hidden'); }
         function openSettings() { document.getElementById('modalSettings').classList.add('active'); }
-        function deleteProvider(id) { if(confirm('Remove provider?')) { providers = providers.filter(p=>p.id!==id); saveState(); }}
-        function clearData() { if(confirm('Delete all history?')) { providers=[]; usage=[]; saveState(); document.getElementById('modalSettings').classList.remove('active'); }}
+        function closeSettings() { document.getElementById('modalSettings').classList.remove('active'); }
+        function openAboutModal() { document.getElementById('modalAbout').classList.add('active'); }
+        function closeAboutModal() { document.getElementById('modalAbout').classList.remove('active'); }
+        function deleteProvider(id) { if(confirm('Remove provider? This does not clear history, only the key.')) { providers = providers.filter(p=>p.id!==id); saveState(); }}
+        function clearData() { if(confirm('⚠️ Delete ALL history AND API keys?')) { providers=[]; usage=[]; saveState(); closeSettings(); }}
         function exportData() {
             const blob = new Blob([JSON.stringify({providers, usage}, null, 2)], {type : 'application/json'});
             const a = document.createElement('a');
