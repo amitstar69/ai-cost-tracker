@@ -3,725 +3,499 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI Cost Tracker v3.1 (Fixed)</title>
+    <title>AI Cost Tracker v4.0 (CORS Fixed)</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Markdown Parser -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        .modal {
-            display: none;
-        }
-        .modal.active {
-            display: flex;
-        }
-        .glass {
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(14px);
-        }
-        .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        /* Utility to truncate long text */
-        .truncated {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 100%;
-        }
+        body { font-family: 'Inter', sans-serif; }
+        .modal { display: none; }
+        .modal.active { display: flex; }
+        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); }
+        
+        /* Markdown Styles */
+        .prose pre { background: #1f2937; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; }
+        .prose code { color: #e9d5ff; font-family: monospace; }
+        .prose p { margin-bottom: 0.75rem; }
+        .prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 0.75rem; }
+        .prose ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 0.75rem; }
+        .prose strong { color: #fff; font-weight: 600; }
     </style>
 </head>
-<body class="bg-gray-950 text-white min-h-screen">
+<body class="bg-gray-950 text-white min-h-screen pb-20">
 
-    <header class="gradient-bg shadow-lg px-6 py-5">
-        <div class="max-w-5xl mx-auto flex justify-between items-center">
+    <!-- Header -->
+    <header class="border-b border-gray-800 bg-gray-900/50 backdrop-blur-md sticky top-0 z-30">
+        <div class="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <div class="text-3xl">📊</div>
+                <div class="text-2xl">📉</div>
                 <div>
-                    <h1 class="text-2xl font-bold">AI Cost Tracker</h1>
-                    <p class="text-purple-200 text-sm">Private. Browser-only. Zero backend.</p>
+                    <h1 class="text-xl font-bold">AI Cost Tracker <span class="text-xs bg-purple-900 text-purple-200 px-2 py-0.5 rounded">v4.0</span></h1>
                 </div>
             </div>
-            <div class="flex items-center gap-3">
-                <button id="exportBtn"
-                    class="px-4 py-2 bg-white/20 hover:bg-white/30 transition rounded-lg text-sm font-medium">
-                    Export
-                </button>
-                <button id="settingsBtn"
-                    class="p-2 bg-white/10 hover:bg-white/20 transition rounded-lg text-xl">
-                    ⚙️
-                </button>
+            <div class="flex gap-2">
+                <button onclick="exportData()" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded text-sm border border-gray-700">Export</button>
+                <button onclick="openSettings()" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded text-sm border border-gray-700">⚙️</button>
             </div>
         </div>
     </header>
 
-    <main class="max-w-5xl mx-auto px-4 py-10">
-        <div id="emptyState" class="text-center py-16 fade-in">
-            <div class="text-6xl mb-4">🚀</div>
-            <h2 class="text-3xl font-bold mb-3">Welcome to AI Cost Tracker</h2>
-            <p class="text-gray-400 max-w-xl mx-auto mb-8">
-                Track your OpenAI, Claude, Gemini, and custom model costs — all locally in your browser.
-                No servers. No logins. No telemetry.
-            </p>
-            <button id="addApiKeyBtn"
-                class="px-8 py-4 bg-purple-600 hover:bg-purple-700 transition rounded-xl text-lg font-semibold shadow-lg">
-                🔑 Add Your First API Key
-            </button>
-            <p class="text-gray-500 text-sm mt-3">Your keys never leave your device.</p>
+    <main class="max-w-5xl mx-auto px-4 py-8">
+        
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-gray-900 p-5 rounded-xl border border-gray-800">
+                <p class="text-gray-400 text-xs uppercase font-semibold">Today</p>
+                <h3 id="statToday" class="text-2xl font-bold text-white mt-1">$0.00</h3>
+            </div>
+            <div class="bg-gray-900 p-5 rounded-xl border border-gray-800">
+                <p class="text-gray-400 text-xs uppercase font-semibold">This Month</p>
+                <h3 id="statMonth" class="text-2xl font-bold text-white mt-1">$0.00</h3>
+            </div>
+            <div class="bg-gray-900 p-5 rounded-xl border border-gray-800">
+                <p class="text-gray-400 text-xs uppercase font-semibold">Total Tokens</p>
+                <h3 id="statTokens" class="text-2xl font-bold text-purple-400 mt-1">0</h3>
+            </div>
+            <div class="bg-gray-900 p-5 rounded-xl border border-gray-800">
+                <p class="text-gray-400 text-xs uppercase font-semibold">Requests</p>
+                <h3 id="statRequests" class="text-2xl font-bold text-blue-400 mt-1">0</h3>
+            </div>
         </div>
 
-        <div id="dashboard" class="hidden">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-                <div class="p-6 rounded-xl gradient-bg shadow-lg">
-                    <p class="text-purple-200 text-sm mb-1">Today</p>
-                    <h3 id="todayCost" class="text-2xl font-bold">$0.00</h3>
-                    <p id="todayRequests" class="text-purple-100 text-xs mt-1">0 requests</p>
-                </div>
-                <div class="p-6 rounded-xl gradient-bg shadow-lg">
-                    <p class="text-purple-200 text-sm mb-1">This Week</p>
-                    <h3 id="weekCost" class="text-2xl font-bold">$0.00</h3>
-                    <p id="weekRequests" class="text-purple-100 text-xs mt-1">0 requests</p>
-                </div>
-                <div class="p-6 rounded-xl gradient-bg shadow-lg">
-                    <p class="text-purple-200 text-sm mb-1">This Month</p>
-                    <h3 id="monthCost" class="text-2xl font-bold">$0.00</h3>
-                    <p id="monthRequests" class="text-purple-100 text-xs mt-1">0 requests</p>
-                </div>
-                <div class="p-6 rounded-xl gradient-bg shadow-lg">
-                    <p class="text-purple-200 text-sm mb-1">All Time</p>
-                    <h3 id="allTimeCost" class="text-2xl font-bold">$0.00</h3>
-                    <p id="allTimeRequests" class="text-purple-100 text-xs mt-1">0 requests</p>
-                </div>
-            </div>
-
+        <!-- API Providers Section -->
+        <div class="mb-8">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold">Connected APIs</h2>
-                <button id="addApiKeyBtn2"
-                    class="px-4 py-2 bg-purple-600 hover:bg-purple-700 transition rounded-lg text-sm font-medium">
-                    + Add
+                <h2 class="text-lg font-semibold">Your APIs</h2>
+                <button onclick="openAddModal()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-medium flex items-center gap-2">
+                    <span>+</span> Add Provider
                 </button>
             </div>
-            <div id="providersList" class="space-y-4 mb-12">
+            
+            <div id="providerList" class="grid gap-3">
+                <!-- Providers injected here -->
+            </div>
+            <div id="emptyProviders" class="hidden text-center py-10 border-2 border-dashed border-gray-800 rounded-xl">
+                <p class="text-gray-500">No APIs connected yet.</p>
+                <p class="text-gray-600 text-sm mt-1">Add OpenAI, Anthropic, or a Local LLM (Ollama) to start.</p>
+            </div>
+        </div>
+
+        <!-- Playground -->
+        <div class="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden shadow-2xl">
+            <div class="p-4 border-b border-gray-800 bg-gray-800/50 flex justify-between items-center">
+                <h2 class="font-semibold">Playground</h2>
+                <div class="flex items-center gap-3">
+                    <span id="estCost" class="text-xs text-gray-400 font-mono">$0.0000 est.</span>
+                    <select id="activeProvider" class="bg-gray-950 border border-gray-700 rounded px-2 py-1 text-sm max-w-[200px]">
+                        <option value="">Select Provider...</option>
+                    </select>
                 </div>
-
-            <div class="bg-gray-900 rounded-xl p-6 shadow-lg">
-                <h2 class="text-xl font-semibold mb-4">Playground</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-                    <div>
-                        <label class="text-sm text-gray-400 mb-2 block">Provider &amp; Model</label>
-                        <select id="playgroundProvider" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700">
-                            <option value="">-- Select --</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-sm text-gray-400 mb-2 block">Estimated Cost</label>
-                        <div id="playgroundEstimate"
-                            class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 text-gray-300">
-                            $0.0000
-                        </div>
-                    </div>
-                </div>
-
-                <label class="text-sm text-gray-400 mb-2 block">Message</label>
-                <textarea id="playgroundInput"
-                    class="w-full p-4 rounded-lg bg-gray-800 border border-gray-700 h-40 resize-none"
-                    placeholder="Type a message..."></textarea>
-
-                <div class="text-right mt-4">
-                    <button id="playgroundSend"
-                        class="px-6 py-3 bg-purple-600 hover:bg-purple-700 transition rounded-lg font-medium">
-                        Send →
+            </div>
+            
+            <div class="p-4">
+                <textarea id="promptInput" class="w-full bg-gray-950 text-gray-200 p-4 rounded-lg border border-gray-800 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none resize-none h-32 font-mono text-sm" placeholder="Enter your system or user prompt here..."></textarea>
+                
+                <div class="flex justify-end mt-3">
+                    <button id="sendBtn" onclick="runPrompt()" class="px-6 py-2 bg-white text-black hover:bg-gray-200 font-semibold rounded-lg transition flex items-center gap-2">
+                        Run Request
                     </button>
                 </div>
-
-                <div id="playgroundOutput"
-                    class="mt-6 p-4 bg-gray-800 border border-gray-700 rounded-lg text-gray-300 whitespace-pre-line hidden">
-                </div>
-
-                <div id="playgroundStats" class="mt-4 text-sm text-gray-400 hidden">
-                    <p>Input Tokens: <span id="statInputTokens">0</span></p>
-                    <p>Output Tokens: <span id="statOutputTokens">0</span></p>
-                    <p>Total Cost: $<span id="statCost">0.0000</span></p>
-                </div>
-            </div> </div> </main>
-
-    <div id="addProviderModal"
-        class="modal fixed inset-0 items-center justify-center bg-black/60 z-50">
-        <div class="bg-gray-900 p-6 rounded-xl w-full max-w-md shadow-xl">
-            <h2 class="text-xl font-semibold mb-4">Add API Provider</h2>
-            <div class="bg-gray-800 p-3 rounded-lg text-sm text-gray-300 mb-4">
-                <p class="font-semibold mb-1">🔒 Privacy &amp; Security</p>
-                <ul class="list-disc ml-5 text-gray-400 text-xs">
-                    <li>Your API keys are stored <b>only in your browser</b> (localStorage).</li>
-                    <li>Keys, prompts, and responses <b>never leave your device</b>.</li>
-                    <li>We use only <b>anonymous</b> traffic analytics.</li>
-                </ul>
             </div>
 
-            <label class="block text-sm text-gray-300 mb-1">Provider</label>
-            <select id="providerType"
-                class="w-full p-3 mb-3 rounded-lg bg-gray-800 border border-gray-700">
+            <!-- Output Area -->
+            <div id="outputArea" class="hidden border-t border-gray-800 bg-black/20 p-6">
+                <div class="flex justify-between text-xs text-gray-500 mb-2 font-mono">
+                    <span>Result</span>
+                    <span id="runStats">0 tokens • $0.0000</span>
+                </div>
+                <div id="outputContent" class="prose prose-invert max-w-none text-sm text-gray-300 leading-relaxed"></div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Add Provider Modal -->
+    <div id="modalAdd" class="modal fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-sm">
+        <div class="bg-gray-900 w-full max-w-md rounded-xl border border-gray-800 shadow-2xl p-6 max-h-[90vh] overflow-y-auto">
+            <h3 class="text-xl font-bold mb-4">Add API Provider</h3>
+            
+            <label class="text-xs text-gray-400 uppercase font-bold block mb-1">Type</label>
+            <select id="pType" onchange="toggleFields()" class="w-full bg-gray-950 border border-gray-700 rounded p-2.5 mb-4 text-sm">
                 <option value="openai">OpenAI</option>
-                <option value="anthropic">Anthropic</option>
-                <option value="gemini">Gemini</option>
-                <option value="custom">Custom</option>
+                <option value="anthropic">Anthropic (Requires Proxy)</option>
+                <option value="gemini">Google Gemini</option>
+                <option value="custom">Custom / Local (Ollama, etc)</option>
             </select>
 
-            <label class="block text-sm text-gray-300 mb-1">Model / URL</label>
-            <input id="providerModel"
-                class="w-full p-3 mb-3 rounded-lg bg-gray-800 border border-gray-700"
-                placeholder="e.g., gpt-4o, claude-3-sonnet, gemini-1.5-flash" />
+            <label class="text-xs text-gray-400 uppercase font-bold block mb-1">Friendly Name</label>
+            <input id="pName" class="w-full bg-gray-950 border border-gray-700 rounded p-2.5 mb-4 text-sm" placeholder="e.g. My Local Ollama">
 
-            <label class="block text-sm text-gray-300 mb-1">API Key</label>
-            <input id="providerKey" type="password"
-                class="w-full p-3 mb-3 rounded-lg bg-gray-800 border border-gray-700"
-                placeholder="Paste API key" />
+            <div id="fieldUrlContainer" class="hidden">
+                <label class="text-xs text-gray-400 uppercase font-bold block mb-1">Base URL</label>
+                <input id="pUrl" class="w-full bg-gray-950 border border-gray-700 rounded p-2.5 mb-4 text-sm" placeholder="http://localhost:11434/v1">
+                <p class="text-xs text-yellow-600 mb-4 -mt-2">For Ollama, use: http://localhost:11434/v1</p>
+            </div>
 
-            <div class="grid grid-cols-2 gap-4 mb-3">
+            <label class="text-xs text-gray-400 uppercase font-bold block mb-1">Model ID</label>
+            <input id="pModel" class="w-full bg-gray-950 border border-gray-700 rounded p-2.5 mb-4 text-sm" placeholder="gpt-4o, claude-3-sonnet, llama3">
+
+            <label class="text-xs text-gray-400 uppercase font-bold block mb-1">API Key</label>
+            <input id="pKey" type="password" class="w-full bg-gray-950 border border-gray-700 rounded p-2.5 mb-4 text-sm" placeholder="sk-...">
+
+            <div class="grid grid-cols-2 gap-4 mb-6">
                 <div>
-                    <label class="block text-sm text-gray-300 mb-1">Input Price /M</label>
-                    <input id="providerInCost" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700"
-                        placeholder="0.50" />
+                    <label class="text-xs text-gray-400 uppercase font-bold block mb-1">Input $/1M</label>
+                    <input id="pIn" type="number" class="w-full bg-gray-950 border border-gray-700 rounded p-2.5 text-sm" placeholder="0.50">
                 </div>
                 <div>
-                    <label class="block text-sm text-gray-300 mb-1">Output Price /M</label>
-                    <input id="providerOutCost" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700"
-                        placeholder="1.50" />
+                    <label class="text-xs text-gray-400 uppercase font-bold block mb-1">Output $/1M</label>
+                    <input id="pOut" type="number" class="w-full bg-gray-950 border border-gray-700 rounded p-2.5 text-sm" placeholder="1.50">
                 </div>
             </div>
 
-            <label class="block text-sm text-gray-300 mb-1">Nickname (optional)</label>
-            <input id="providerNickname"
-                class="w-full p-3 mb-4 rounded-lg bg-gray-800 border border-gray-700"
-                placeholder="e.g. Work, Personal" />
-
-            <div class="flex justify-end gap-3 mt-6">
-                <button id="addProviderCancel"
-                    class="px-4 py-2 bg-gray-700 hover:bg-gray-600 transition rounded-lg">
-                    Cancel
-                </button>
-                <button id="addProviderSave"
-                    class="px-4 py-2 bg-purple-600 hover:bg-purple-700 transition rounded-lg">
-                    Save
-                </button>
+            <div class="flex gap-3">
+                <button onclick="closeAddModal()" class="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 rounded-lg font-medium">Cancel</button>
+                <button onclick="saveProvider()" class="flex-1 py-2.5 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium">Save</button>
             </div>
         </div>
     </div>
 
-    <div id="settingsModal"
-        class="modal fixed inset-0 items-center justify-center bg-black/60 z-50">
-        <div class="bg-gray-900 p-6 rounded-xl w-full max-w-md shadow-xl">
-            <h2 class="text-xl font-semibold mb-4">Settings</h2>
-            <button id="clearData"
-                class="w-full px-4 py-3 bg-red-600 hover:bg-red-700 transition rounded-lg mb-4">
-                Clear All Data
+    <!-- Settings Modal -->
+    <div id="modalSettings" class="modal fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-sm">
+        <div class="bg-gray-900 w-full max-w-sm rounded-xl border border-gray-800 p-6">
+            <h3 class="text-xl font-bold mb-4">Settings</h3>
+            <button onclick="clearData()" class="w-full py-3 bg-red-900/30 text-red-400 border border-red-900 hover:bg-red-900/50 rounded-lg mb-3 font-medium">
+                ⚠️ Clear All Data
             </button>
-            <p class="text-gray-400 text-sm mb-6">
-                Clears all API keys, providers, and usage history from this browser.
-            </p>
-            <button id="settingsClose"
-                class="w-full px-4 py-3 bg-gray-700 hover:bg-gray-600 transition rounded-lg">
+            <button onclick="document.getElementById('modalSettings').classList.remove('active')" class="w-full py-3 bg-gray-800 hover:bg-gray-700 rounded-lg font-medium">
                 Close
             </button>
         </div>
     </div>
 
     <script>
-    /* -------------------------------------------------------
-    AI COST TRACKER v3.1 — BUG-FIXED JS ENGINE
-    ------------------------------------------------------- */
+        /**
+         * AI COST TRACKER v4.0 - Logic Engine
+         * Fixes: Markdown support, robust Custom URL handling, improved CORS error messaging.
+         */
 
-    /* --------------------- STORAGE HELPERS --------------------- */
-    function load(key, fallback) {
-        try {
-            return JSON.parse(localStorage.getItem(key)) ?? fallback;
-        } catch {
-            return fallback;
+        // --- STATE MANAGEMENT ---
+        let providers = JSON.parse(localStorage.getItem('act_providers') || '[]');
+        let usage = JSON.parse(localStorage.getItem('act_usage') || '[]');
+
+        function saveState() {
+            localStorage.setItem('act_providers', JSON.stringify(providers));
+            localStorage.setItem('act_usage', JSON.stringify(usage));
+            renderUI();
         }
-    }
-    function save(key, value) {
-        localStorage.setItem(key, JSON.stringify(value));
-    }
 
-    /* --------------------- GLOBAL STATE ----------------------- */
-    let providers = load("providers", []);
-    let usage = load("usage", []);
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            renderUI();
+            // Setup input listener for cost estimation
+            document.getElementById('promptInput').addEventListener('input', updateEstimate);
+            document.getElementById('activeProvider').addEventListener('change', updateEstimate);
+        });
 
-    /* ---------------------- UTILITIES -------------------------- */
-    function uid() {
-        return Date.now().toString() + Math.floor(Math.random() * 99999);
-    }
-    function estTokens(text) {
-        // Rough estimate: 1 token ~= 4 chars
-        return Math.max(1, Math.ceil((text || "").length / 4));
-    }
-    function fireEvent(name) {
-        if (window.plausible) plausible(name);
-    }
+        // --- RENDERING UI ---
+        function renderUI() {
+            // 1. Stats
+            const now = new Date();
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    /* ---------------------- INITIAL RENDER --------------------- */
-    document.addEventListener("DOMContentLoaded", () => {
-        renderApp();
-        wireUI();
-        wireAnalyticsScript();
-    });
+            const todayUsage = usage.filter(u => new Date(u.ts) >= startOfDay);
+            const monthUsage = usage.filter(u => new Date(u.ts) >= startOfMonth);
 
-    /* ------------------------ UI WIRING ------------------------ */
-    function wireUI() {
-        document.getElementById("addApiKeyBtn")?.addEventListener("click", openAddProvider);
-        document.getElementById("addApiKeyBtn2")?.addEventListener("click", openAddProvider);
-        document.getElementById("settingsBtn")?.addEventListener("click", openSettings);
-        document.getElementById("settingsClose")?.addEventListener("click", closeSettings);
-        document.getElementById("addProviderCancel")?.addEventListener("click", closeAddProvider);
-        document.getElementById("addProviderSave")?.addEventListener("click", saveProvider);
-        document.getElementById("clearData")?.addEventListener("click", clearAllData);
-        document.getElementById("exportBtn")?.addEventListener("click", exportData);
+            const sumCost = (arr) => arr.reduce((a, b) => a + (b.cost || 0), 0);
+            
+            document.getElementById('statToday').innerText = `$${sumCost(todayUsage).toFixed(4)}`;
+            document.getElementById('statMonth').innerText = `$${sumCost(monthUsage).toFixed(4)}`;
+            document.getElementById('statRequests').innerText = usage.length;
+            document.getElementById('statTokens').innerText = usage.reduce((a,b) => a + (b.inTok + b.outTok), 0).toLocaleString();
 
-        // Playground
-        document.getElementById("playgroundProvider")?.addEventListener("change", updatePlaygroundEst);
-        document.getElementById("playgroundInput")?.addEventListener("input", updatePlaygroundEst);
-        document.getElementById("playgroundSend")?.addEventListener("click", runPlayground);
-        
-        // UI Tweak: Change placeholder if Custom is selected
-        document.getElementById("providerType")?.addEventListener("change", (e) => {
-            const input = document.getElementById("providerModel");
-            if (e.target.value === "custom") {
-                input.placeholder = "https://your-custom-endpoint.com/v1/chat/completions";
+            // 2. Providers List
+            const list = document.getElementById('providerList');
+            const empty = document.getElementById('emptyProviders');
+            const select = document.getElementById('activeProvider');
+            
+            list.innerHTML = '';
+            const savedVal = select.value; // Preserve selection
+            select.innerHTML = '<option value="">Select Provider...</option>';
+
+            if (providers.length === 0) {
+                empty.classList.remove('hidden');
             } else {
-                input.placeholder = "e.g., gpt-4o, claude-3-sonnet, gemini-1.5-flash";
+                empty.classList.add('hidden');
+                providers.forEach(p => {
+                    // Add to Dashboard List
+                    const div = document.createElement('div');
+                    div.className = 'bg-gray-900 p-4 rounded-lg border border-gray-800 flex justify-between items-center group hover:border-gray-700 transition';
+                    div.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <div class="h-8 w-8 rounded-full bg-gradient-to-br from-gray-800 to-black border border-gray-700 flex items-center justify-center text-xs font-bold">
+                                ${p.type.substring(0,2).toUpperCase()}
+                            </div>
+                            <div>
+                                <p class="font-semibold text-sm">${p.name}</p>
+                                <p class="text-xs text-gray-500">${p.model}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <span class="text-xs text-gray-500 font-mono">$${p.totalCost?.toFixed(4) || '0.0000'}</span>
+                            <button onclick="deleteProvider('${p.id}')" class="text-gray-600 hover:text-red-400">✕</button>
+                        </div>
+                    `;
+                    list.appendChild(div);
+
+                    // Add to Dropdown
+                    const opt = document.createElement('option');
+                    opt.value = p.id;
+                    opt.innerText = `${p.name} (${p.model})`;
+                    select.appendChild(opt);
+                });
+                select.value = savedVal;
             }
-        });
-    }
-
-    /* ---------------------- MAIN RENDER ------------------------ */
-    function renderApp() {
-        const empty = document.getElementById("emptyState");
-        const dash = document.getElementById("dashboard");
-
-        if (providers.length === 0) {
-            empty.classList.remove("hidden");
-            dash.classList.add("hidden");
-            return;
-        }
-        empty.classList.add("hidden");
-        dash.classList.remove("hidden");
-
-        renderProviders();
-        renderPlaygroundProviders();
-        renderDashboardStats();
-    }
-
-    /* ---------------------- PROVIDER CARDS ---------------------- */
-    function renderProviders() {
-        const box = document.getElementById("providersList");
-        box.innerHTML = "";
-        providers.forEach(p => {
-            const div = document.createElement("div");
-            div.className = "bg-gray-900 p-4 rounded-lg border border-gray-700 flex justify-between items-center";
-            div.innerHTML = `
-                <div>
-                    <p class="font-semibold">${p.nickname || p.name}</p>
-                    <p class="text-xs text-gray-400 truncated" style="max-width:200px;">${p.type === 'custom' ? p.model : p.model}</p>
-                    <p class="text-xs text-gray-500 mt-1">$${getProviderTotal(p.id).toFixed(4)} total</p>
-                </div>
-                <button class="text-red-400 hover:text-red-300 text-lg" data-id="${p.id}">
-                    ✕
-                </button>
-            `;
-            div.querySelector("button").addEventListener("click", () => deleteProvider(p.id));
-            box.appendChild(div);
-        });
-    }
-
-    function getProviderTotal(id) {
-        return usage.filter(u => u.providerId === id).reduce((s, u) => s + u.cost, 0);
-    }
-
-    function deleteProvider(id) {
-        if (!confirm("Remove this provider?")) return;
-        providers = providers.filter(p => p.id !== id);
-        save("providers", providers);
-        renderApp();
-    }
-
-    /* ---------------------- PLAYGROUND PROVIDER DROPDOWN -------- */
-    function renderPlaygroundProviders() {
-        const sel = document.getElementById("playgroundProvider");
-        sel.innerHTML = `<option value="">-- Select --</option>`;
-        providers.forEach(p => {
-            // Truncate long URLs for display
-            const displayName = p.type === 'custom' ? 'Custom URL' : p.model;
-            sel.innerHTML += `
-                <option value="${p.id}">${p.nickname || p.name} — ${displayName}</option>
-            `;
-        });
-    }
-
-    /* ------------------------ DASHBOARD STATS ------------------ */
-    function renderDashboardStats() {
-        const now = new Date();
-        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const weekStart = new Date(now.getTime() - 7 * 86400000);
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-
-        function calc(start) {
-            return usage.filter(u => new Date(u.ts) >= start)
-                        .reduce((s, u) => s + u.cost, 0);
-        }
-        function count(start) {
-            return usage.filter(u => new Date(u.ts) >= start).length;
         }
 
-        document.getElementById("todayCost").innerText = "$" + calc(todayStart).toFixed(4);
-        document.getElementById("weekCost").innerText = "$" + calc(weekStart).toFixed(4);
-        document.getElementById("monthCost").innerText = "$" + calc(monthStart).toFixed(4);
-        document.getElementById("allTimeCost").innerText = "$" + usage.reduce((s, u) => s + u.cost, 0).toFixed(4);
+        // --- CORE LOGIC: ESTIMATION ---
+        function updateEstimate() {
+            const text = document.getElementById('promptInput').value;
+            const pid = document.getElementById('activeProvider').value;
+            const display = document.getElementById('estCost');
 
-        document.getElementById("todayRequests").innerText = count(todayStart) + " requests";
-        document.getElementById("weekRequests").innerText = count(weekStart) + " requests";
-        document.getElementById("monthRequests").innerText = count(monthStart) + " requests";
-        document.getElementById("allTimeRequests").innerText = usage.length + " requests";
-    }
-
-    /* -------------------------- MODALS -------------------------- */
-    function openAddProvider() {
-        document.getElementById("addProviderModal").classList.add("active");
-    }
-    function closeAddProvider() {
-        document.getElementById("addProviderModal").classList.remove("active");
-    }
-    function openSettings() {
-        document.getElementById("settingsModal").classList.add("active");
-    }
-    function closeSettings() {
-        document.getElementById("settingsModal").classList.remove("active");
-    }
-
-    /* ----------------------- SAVE PROVIDER ----------------------- */
-    function saveProvider() {
-        const type = document.getElementById("providerType").value;
-        let model = document.getElementById("providerModel").value.trim();
-        const key = document.getElementById("providerKey").value.trim();
-        const inCost = parseFloat(document.getElementById("providerInCost").value) || 0;
-        const outCost = parseFloat(document.getElementById("providerOutCost").value) || 0;
-        const nickname = document.getElementById("providerNickname").value.trim();
-
-        if (!model || !key) {
-            alert("Model/URL and API key required.");
-            return;
-        }
-
-        // Validation for Custom Type
-        if (type === 'custom' && !model.startsWith('http')) {
-            if(!confirm("For 'Custom' providers, the Model field should be a full URL (e.g. https://...). \n\nYou entered: " + model + "\n\nContinue anyway?")) {
+            if (!text || !pid) {
+                display.innerText = '$0.0000 est.';
                 return;
             }
+
+            const p = providers.find(x => x.id === pid);
+            // Rough rule of thumb: 1 token ~= 4 chars
+            const tokens = Math.ceil(text.length / 4);
+            const cost = (tokens / 1_000_000) * p.inPrice;
+            
+            display.innerText = `~${tokens} toks • $${cost.toFixed(6)} est.`;
         }
 
-        providers.push({
-            id: uid(),
-            type,
-            name: type,
-            model,
-            apiKey: key,
-            inCost: inCost / 1_000_000,
-            outCost: outCost / 1_000_000,
-            nickname
-        });
-        save("providers", providers);
-        fireEvent("api_key_added");
-        closeAddProvider();
-        renderApp();
-    }
+        // --- CORE LOGIC: API CALLS ---
+        async function runPrompt() {
+            const pid = document.getElementById('activeProvider').value;
+            const prompt = document.getElementById('promptInput').value;
+            const btn = document.getElementById('sendBtn');
+            const outArea = document.getElementById('outputArea');
+            const outContent = document.getElementById('outputContent');
+            const runStats = document.getElementById('runStats');
 
-    /* -------------------------- PLAYGROUND ------------------------ */
-    function updatePlaygroundEst() {
-        const providerId = document.getElementById("playgroundProvider").value;
-        const msg = document.getElementById("playgroundInput").value;
+            if (!pid) return alert("Please select a provider.");
+            if (!prompt) return alert("Please enter a prompt.");
 
-        if (!providerId) {
-            document.getElementById("playgroundEstimate").innerText = "$0.0000";
-            return;
+            const provider = providers.find(x => x.id === pid);
+            
+            // UI Loading State
+            btn.innerText = "Thinking...";
+            btn.disabled = true;
+            outArea.classList.remove('hidden');
+            outContent.innerHTML = '<span class="animate-pulse text-gray-500">Waiting for response...</span>';
+
+            try {
+                let result;
+                
+                if (provider.type === 'gemini') {
+                    result = await callGemini(provider, prompt);
+                } else {
+                    // Universal Handler (OpenAI, Anthropic, Custom/Ollama)
+                    result = await callUniversal(provider, prompt);
+                }
+
+                // Render Markdown
+                outContent.innerHTML = marked.parse(result.text);
+
+                // Stats
+                const cost = (result.inTok / 1000000 * provider.inPrice) + (result.outTok / 1000000 * provider.outPrice);
+                runStats.innerText = `In: ${result.inTok} • Out: ${result.outTok} • Cost: $${cost.toFixed(6)}`;
+
+                // Save Data
+                usage.push({
+                    id: Date.now(),
+                    pid: provider.id,
+                    ts: new Date().toISOString(),
+                    inTok: result.inTok,
+                    outTok: result.outTok,
+                    cost: cost
+                });
+                
+                // Update Provider Total
+                provider.totalCost = (provider.totalCost || 0) + cost;
+                
+                saveState();
+
+            } catch (err) {
+                outContent.innerHTML = `<div class="text-red-400 bg-red-900/20 p-3 rounded border border-red-900">
+                    <strong>Error:</strong> ${err.message}
+                    <br/><br/>
+                    <small class="text-gray-400">Tip: If this is a CORS error, use a Local LLM (Ollama) or a provider that allows browser access.</small>
+                </div>`;
+                console.error(err);
+            } finally {
+                btn.innerText = "Run Request";
+                btn.disabled = false;
+            }
         }
 
-        const p = providers.find(x => x.id === providerId);
-        const tokens = estTokens(msg);
-        // Estimate: Input tokens + (Input tokens * 0.5 as rough output guess)
-        const est = (tokens * p.inCost) + (tokens * 0.5 * p.outCost);
-        document.getElementById("playgroundEstimate").innerText = "$" + est.toFixed(6);
-    }
+        // --- API HANDLERS ---
 
-    async function runPlayground() {
-        const providerId = document.getElementById("playgroundProvider").value;
-        const msg = document.getElementById("playgroundInput").value.trim();
-
-        if (!providerId) return alert("Select a provider");
-        if (!msg) return alert("Enter a message");
-
-        const p = providers.find(x => x.id === providerId);
-        document.getElementById("playgroundSend").innerText = "Sending…";
-        document.getElementById("playgroundOutput").classList.add("hidden");
-        document.getElementById("playgroundStats").classList.add("hidden");
-
-        try {
-            const result = await callLLM(p, msg);
-
-            // Show output
-            document.getElementById("playgroundOutput").innerText = result.text;
-            document.getElementById("playgroundOutput").classList.remove("hidden");
-
-            // Stats
-            document.getElementById("statInputTokens").innerText = result.inTok;
-            document.getElementById("statOutputTokens").innerText = result.outTok;
-            document.getElementById("statCost").innerText = result.cost.toFixed(6);
-            document.getElementById("playgroundStats").classList.remove("hidden");
-
-            // Save usage
-            usage.push({
-                id: uid(),
-                providerId: p.id,
-                provider: p.type,
-                model: p.model,
-                ts: new Date().toISOString(),
-                inTok: result.inTok,
-                outTok: result.outTok,
-                cost: result.cost
-            });
-            save("usage", usage);
-            fireEvent("playground_used");
-            renderDashboardStats();
-
-        } catch (err) {
-            console.error(err);
-            alert("Error: " + err.message);
-        }
-        document.getElementById("playgroundSend").innerText = "Send →";
-    }
-
-    /* ---------------------- PROVIDER API HANDLERS ---------------------- */
-    async function callLLM(p, prompt) {
-        switch (p.type) {
-            case "openai":
-                return callOpenAI(p, prompt);
-            case "anthropic":
-                return callAnthropic(p, prompt);
-            case "gemini":
-                return callGemini(p, prompt);
-            default:
-                return callCustom(p, prompt);
-        }
-    }
-
-    /* ---------------------- OPENAI (FIXED) ---------------------- */
-    async function callOpenAI(p, prompt) {
-        // FIXED: Correct Chat Completion Endpoint
-        const r = await fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: {
-                "Authorization": "Bearer " + p.apiKey,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
+        async function callUniversal(p, prompt) {
+            // Determine Endpoint
+            let url = '';
+            let headers = { "Content-Type": "application/json" };
+            let body = {
                 model: p.model,
                 messages: [{ role: "user", content: prompt }],
-                max_tokens: 1000
-            })
-        });
+                stream: false 
+            };
 
-        if (!r.ok) {
-            const msg = await r.text();
-            throw new Error("OpenAI error (Check CORS/API Key): " + msg);
-        }
+            if (p.type === 'openai') {
+                url = 'https://api.openai.com/v1/chat/completions';
+                headers["Authorization"] = `Bearer ${p.apiKey}`;
+            } else if (p.type === 'anthropic') {
+                // Anthropic requires a proxy usually, but we try direct just in case they change headers
+                url = 'https://api.anthropic.com/v1/messages';
+                headers["x-api-key"] = p.apiKey;
+                headers["anthropic-version"] = "2023-06-01";
+                headers["anthropic-dangerous-direct-browser-access"] = "true"; // Required for browser
+                body = {
+                    model: p.model,
+                    max_tokens: 1024,
+                    messages: [{ role: "user", content: prompt }]
+                };
+            } else if (p.type === 'custom') {
+                // Custom / Ollama / Groq
+                url = p.baseUrl.endsWith('/') ? `${p.baseUrl}chat/completions` : `${p.baseUrl}/chat/completions`;
+                // Some local LLMs don't need keys, but if provided, send it
+                if (p.apiKey) headers["Authorization"] = `Bearer ${p.apiKey}`;
+            }
 
-        const json = await r.json();
-        const text = json.choices?.[0]?.message?.content || ""; 
-        const inTok = json.usage?.prompt_tokens || estTokens(prompt);
-        const outTok = json.usage?.completion_tokens || estTokens(text);
-
-        return {
-            text,
-            inTok,
-            outTok,
-            cost: inTok * p.inCost + outTok * p.outCost
-        };
-    }
-
-    /* ---------------------- ANTHROPIC ---------------------- */
-    async function callAnthropic(p, prompt) {
-        // NOTE: Anthropic strictly blocks Browser CORS. 
-        // This will likely fail without a proxy server.
-        const r = await fetch("https://api.anthropic.com/v1/messages", {
-            method: "POST",
-            headers: {
-                "x-api-key": p.apiKey,
-                "Content-Type": "application/json",
-                "anthropic-version": "2023-06-01",
-                "anthropic-dangerous-direct-browser-access": "true"
-            },
-            body: JSON.stringify({
-                model: p.model,
-                max_tokens: 1024,
-                messages: [
-                    { role: "user", content: prompt }
-                ]
-            })
-        });
-
-        if (!r.ok) {
-            const msg = await r.text();
-            throw new Error("Anthropic error: " + msg);
-        }
-
-        const json = await r.json();
-        const text = json.content?.[0]?.text || "";
-        const inTok = json.usage?.input_tokens || estTokens(prompt);
-        const outTok = json.usage?.output_tokens || estTokens(text);
-
-        return {
-            text,
-            inTok,
-            outTok,
-            cost: inTok * p.inCost + outTok * p.outCost
-        };
-    }
-
-    /* ---------------------- GEMINI ---------------------- */
-    async function callGemini(p, prompt) {
-        const body = {
-            contents: [
-                {
-                    role: "user",
-                    parts: [{ text: prompt }]
-                }
-            ]
-        };
-
-        // Try v1beta first
-        const urlBeta = `https://generativelanguage.googleapis.com/v1beta/models/${p.model}:generateContent?key=${p.apiKey}`;
-        
-        let r = await fetch(urlBeta, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body)
-        });
-
-        if (!r.ok) {
-            // Fallback to v1
-            const urlV1 = `https://generativelanguage.googleapis.com/v1/models/${p.model}:generateContent?key=${p.apiKey}`;
-            r = await fetch(urlV1, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: headers,
                 body: JSON.stringify(body)
             });
 
-            if (!r.ok) {
-                const msg = await r.text();
-                throw new Error("Gemini error: " + msg);
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(`API Error (${response.status}): ${errText}`);
+            }
+
+            const json = await response.json();
+            
+            // Parsing Logic
+            let text = "";
+            let inTok = 0;
+            let outTok = 0;
+
+            if (p.type === 'anthropic') {
+                text = json.content[0].text;
+                inTok = json.usage.input_tokens;
+                outTok = json.usage.output_tokens;
+            } else {
+                // OpenAI / Compatible Standard
+                text = json.choices[0].message.content;
+                inTok = json.usage?.prompt_tokens || prompt.length / 4;
+                outTok = json.usage?.completion_tokens || text.length / 4;
+            }
+
+            return { text, inTok, outTok };
+        }
+
+        async function callGemini(p, prompt) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${p.model}:generateContent?key=${p.apiKey}`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }]
+                })
+            });
+
+            if (!response.ok) throw new Error(await response.text());
+            const json = await response.json();
+            
+            const text = json.candidates[0].content.parts[0].text;
+            // Gemini doesn't always return usage in v1beta without extra fields, estimating:
+            return { 
+                text, 
+                inTok: Math.ceil(prompt.length/4), 
+                outTok: Math.ceil(text.length/4) 
+            };
+        }
+
+        // --- MODAL ACTIONS ---
+        function openAddModal() { document.getElementById('modalAdd').classList.add('active'); }
+        function closeAddModal() { document.getElementById('modalAdd').classList.remove('active'); }
+        function openSettings() { document.getElementById('modalSettings').classList.add('active'); }
+
+        function toggleFields() {
+            const type = document.getElementById('pType').value;
+            const urlContainer = document.getElementById('fieldUrlContainer');
+            if (type === 'custom') {
+                urlContainer.classList.remove('hidden');
+                document.getElementById('pModel').placeholder = "llama3, mistral, etc.";
+            } else {
+                urlContainer.classList.add('hidden');
             }
         }
 
-        const json = await r.json();
-        const text = json.candidates?.[0]?.content?.parts?.[0]?.text || "";
-        const inTok = estTokens(prompt);
-        const outTok = estTokens(text);
+        function saveProvider() {
+            const type = document.getElementById('pType').value;
+            const name = document.getElementById('pName').value || type;
+            const model = document.getElementById('pModel').value;
+            const key = document.getElementById('pKey').value;
+            const baseUrl = document.getElementById('pUrl').value;
+            const inPrice = parseFloat(document.getElementById('pIn').value) || 0;
+            const outPrice = parseFloat(document.getElementById('pOut').value) || 0;
 
-        return {
-            text,
-            inTok,
-            outTok,
-            cost: inTok * p.inCost + outTok * p.outCost
-        };
-    }
+            if (!model) return alert("Model ID is required");
+            if (type !== 'custom' && !key) return alert("API Key is required");
+            if (type === 'custom' && !baseUrl) return alert("Base URL required for custom providers");
 
-    /* ---------------------- CUSTOM PROVIDER ---------------------- */
-    async function callCustom(p, prompt) {
-        // For Custom, p.model IS the URL
-        const url = p.model;
-        
-        const payload = {
-            model: "custom", // Some endpoints need this
-            messages: [{ role: "user", content: prompt }],
-            stream: false
-        };
-
-        const headers = {
-            "Content-Type": "application/json"
-        };
-        if (p.apiKey) {
-            headers["Authorization"] = "Bearer " + p.apiKey;
-        }
-
-        let r;
-        try {
-            r = await fetch(url, {
-                method: "POST",
-                headers,
-                body: JSON.stringify(payload)
+            providers.push({
+                id: Date.now().toString(),
+                type, name, model, apiKey: key, baseUrl, inPrice, outPrice, totalCost: 0
             });
-        } catch (err) {
-            throw new Error("Network Error. Check your URL, CORS settings, or if the server is running.");
+            
+            saveState();
+            closeAddModal();
+            
+            // Clear inputs
+            document.getElementById('pKey').value = '';
+            document.getElementById('pName').value = '';
         }
 
-        if (!r.ok) {
-            const msg = await r.text();
-            throw new Error("Custom API error: " + msg);
+        function deleteProvider(id) {
+            if(confirm('Remove this provider?')) {
+                providers = providers.filter(p => p.id !== id);
+                saveState();
+            }
         }
 
-        const json = await r.json();
+        function clearData() {
+            if(confirm('Delete ALL data? This cannot be undone.')) {
+                providers = [];
+                usage = [];
+                saveState();
+                document.getElementById('modalSettings').classList.remove('active');
+            }
+        }
 
-        // Heuristic to find the text in various custom formats
-        const text =
-            json.choices?.[0]?.message?.content ||
-            json.response || 
-            json.generated_text ||
-            JSON.stringify(json);
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({providers, usage}));
+            const dlAnchorElem = document.createElement('a');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", "ai_cost_tracker_backup.json");
+            dlAnchorElem.click();
+        }
 
-        const inTok = json.usage?.prompt_tokens || estTokens(prompt);
-        const outTok = json.usage?.completion_tokens || estTokens(text);
-
-        return {
-            text,
-            inTok,
-            outTok,
-            cost: inTok * p.inCost + outTok * p.outCost
-        };
-    }
-
-    /* -------------------------- CLEAR DATA ------------------------ */
-    function clearAllData() {
-        if (!confirm("Clear ALL data?")) return;
-        providers = [];
-        usage = [];
-        save("providers", providers);
-        save("usage", usage);
-        renderApp();
-    }
-
-    /* -------------------------- EXPORT DATA ------------------------ */
-    function exportData() {
-        const data = {
-            providers,
-            usage,
-            exportedAt: new Date().toISOString()
-        };
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "ai-cost-tracker-export.json";
-        a.click();
-        URL.revokeObjectURL(url);
-    }
-
-    /* ------------------ ANONYMOUS ANALYTICS ------------------ */
-    function wireAnalyticsScript() {
-        const s = document.createElement("script");
-        s.defer = true;
-        s.setAttribute("data-domain", "amitstar69.github.io");
-        s.src = "https://plausible.io/js/script.js";
-        document.head.appendChild(s);
-    }
     </script>
 </body>
 </html>
