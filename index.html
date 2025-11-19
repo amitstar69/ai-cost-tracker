@@ -3,35 +3,31 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI Cost Tracker v4.0 (CORS Fixed)</title>
+    <title>AI Cost Tracker v5.0 (Smart UX)</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Markdown Parser -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
         .modal { display: none; }
         .modal.active { display: flex; }
-        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); }
         
         /* Markdown Styles */
-        .prose pre { background: #1f2937; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; }
-        .prose code { color: #e9d5ff; font-family: monospace; }
+        .prose pre { background: #1f2937; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin-top: 0.5rem; }
+        .prose code { color: #e9d5ff; font-family: monospace; font-size: 0.9em; }
         .prose p { margin-bottom: 0.75rem; }
         .prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 0.75rem; }
-        .prose ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 0.75rem; }
         .prose strong { color: #fff; font-weight: 600; }
     </style>
 </head>
 <body class="bg-gray-950 text-white min-h-screen pb-20">
 
-    <!-- Header -->
     <header class="border-b border-gray-800 bg-gray-900/50 backdrop-blur-md sticky top-0 z-30">
         <div class="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
             <div class="flex items-center gap-3">
                 <div class="text-2xl">📉</div>
                 <div>
-                    <h1 class="text-xl font-bold">AI Cost Tracker <span class="text-xs bg-purple-900 text-purple-200 px-2 py-0.5 rounded">v4.0</span></h1>
+                    <h1 class="text-xl font-bold">AI Cost Tracker <span class="text-xs bg-green-900 text-green-200 px-2 py-0.5 rounded">v5.0</span></h1>
                 </div>
             </div>
             <div class="flex gap-2">
@@ -43,7 +39,6 @@
 
     <main class="max-w-5xl mx-auto px-4 py-8">
         
-        <!-- Stats Grid -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             <div class="bg-gray-900 p-5 rounded-xl border border-gray-800">
                 <p class="text-gray-400 text-xs uppercase font-semibold">Today</p>
@@ -54,118 +49,119 @@
                 <h3 id="statMonth" class="text-2xl font-bold text-white mt-1">$0.00</h3>
             </div>
             <div class="bg-gray-900 p-5 rounded-xl border border-gray-800">
-                <p class="text-gray-400 text-xs uppercase font-semibold">Total Tokens</p>
-                <h3 id="statTokens" class="text-2xl font-bold text-purple-400 mt-1">0</h3>
-            </div>
-            <div class="bg-gray-900 p-5 rounded-xl border border-gray-800">
                 <p class="text-gray-400 text-xs uppercase font-semibold">Requests</p>
                 <h3 id="statRequests" class="text-2xl font-bold text-blue-400 mt-1">0</h3>
             </div>
+            <div class="bg-gray-900 p-5 rounded-xl border border-gray-800">
+                <p class="text-gray-400 text-xs uppercase font-semibold">Est. Tokens</p>
+                <h3 id="statTokens" class="text-2xl font-bold text-purple-400 mt-1">0</h3>
+            </div>
         </div>
 
-        <!-- API Providers Section -->
         <div class="mb-8">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg font-semibold">Your APIs</h2>
-                <button onclick="openAddModal()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-medium flex items-center gap-2">
-                    <span>+</span> Add Provider
+                <h2 class="text-lg font-semibold">Connected APIs</h2>
+                <button onclick="openAddModal()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-medium flex items-center gap-2 shadow-lg shadow-purple-900/20 transition-all hover:scale-105">
+                    <span>+</span> Connect API
                 </button>
             </div>
             
             <div id="providerList" class="grid gap-3">
-                <!-- Providers injected here -->
-            </div>
-            <div id="emptyProviders" class="hidden text-center py-10 border-2 border-dashed border-gray-800 rounded-xl">
-                <p class="text-gray-500">No APIs connected yet.</p>
-                <p class="text-gray-600 text-sm mt-1">Add OpenAI, Anthropic, or a Local LLM (Ollama) to start.</p>
+                </div>
+            <div id="emptyProviders" class="hidden text-center py-12 border-2 border-dashed border-gray-800 rounded-xl bg-gray-900/30">
+                <p class="text-gray-500 font-medium">No APIs connected yet.</p>
+                <p class="text-gray-600 text-sm mt-1">Connect OpenRouter, Gemini, or Ollama to start.</p>
             </div>
         </div>
 
-        <!-- Playground -->
         <div class="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden shadow-2xl">
             <div class="p-4 border-b border-gray-800 bg-gray-800/50 flex justify-between items-center">
-                <h2 class="font-semibold">Playground</h2>
+                <h2 class="font-semibold text-gray-200">Playground</h2>
                 <div class="flex items-center gap-3">
-                    <span id="estCost" class="text-xs text-gray-400 font-mono">$0.0000 est.</span>
-                    <select id="activeProvider" class="bg-gray-950 border border-gray-700 rounded px-2 py-1 text-sm max-w-[200px]">
+                    <span id="estCost" class="text-xs text-gray-500 font-mono transition-colors">$0.0000 est.</span>
+                    <select id="activeProvider" class="bg-gray-950 border border-gray-700 rounded px-2 py-1.5 text-sm max-w-[200px] text-gray-300 focus:border-purple-500 outline-none">
                         <option value="">Select Provider...</option>
                     </select>
                 </div>
             </div>
             
             <div class="p-4">
-                <textarea id="promptInput" class="w-full bg-gray-950 text-gray-200 p-4 rounded-lg border border-gray-800 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none resize-none h-32 font-mono text-sm" placeholder="Enter your system or user prompt here..."></textarea>
+                <textarea id="promptInput" class="w-full bg-gray-950 text-gray-200 p-4 rounded-lg border border-gray-800 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none resize-none h-40 font-mono text-sm transition-all" placeholder="Type your prompt here..."></textarea>
                 
                 <div class="flex justify-end mt-3">
-                    <button id="sendBtn" onclick="runPrompt()" class="px-6 py-2 bg-white text-black hover:bg-gray-200 font-semibold rounded-lg transition flex items-center gap-2">
+                    <button id="sendBtn" onclick="runPrompt()" class="px-6 py-2.5 bg-white text-black hover:bg-gray-200 font-bold rounded-lg transition flex items-center gap-2 shadow-lg shadow-white/10">
                         Run Request
                     </button>
                 </div>
             </div>
 
-            <!-- Output Area -->
             <div id="outputArea" class="hidden border-t border-gray-800 bg-black/20 p-6">
-                <div class="flex justify-between text-xs text-gray-500 mb-2 font-mono">
-                    <span>Result</span>
+                <div class="flex justify-between text-xs text-gray-500 mb-4 font-mono border-b border-gray-800 pb-2">
+                    <span>RESULT</span>
                     <span id="runStats">0 tokens • $0.0000</span>
                 </div>
                 <div id="outputContent" class="prose prose-invert max-w-none text-sm text-gray-300 leading-relaxed"></div>
             </div>
         </div>
-
     </main>
 
-    <!-- Add Provider Modal -->
     <div id="modalAdd" class="modal fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-sm">
-        <div class="bg-gray-900 w-full max-w-md rounded-xl border border-gray-800 shadow-2xl p-6 max-h-[90vh] overflow-y-auto">
-            <h3 class="text-xl font-bold mb-4">Add API Provider</h3>
+        <div class="bg-gray-900 w-full max-w-md rounded-xl border border-gray-800 shadow-2xl p-6 transition-all">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold">Connect API</h3>
+                <button onclick="closeAddModal()" class="text-gray-500 hover:text-white text-xl">&times;</button>
+            </div>
             
-            <label class="text-xs text-gray-400 uppercase font-bold block mb-1">Type</label>
-            <select id="pType" onchange="toggleFields()" class="w-full bg-gray-950 border border-gray-700 rounded p-2.5 mb-4 text-sm">
-                <option value="openai">OpenAI</option>
-                <option value="anthropic">Anthropic (Requires Proxy)</option>
+            <label class="text-xs text-gray-400 uppercase font-bold block mb-1.5">Provider</label>
+            <select id="pType" onchange="updateModalUI()" class="w-full bg-gray-950 border border-gray-700 rounded-lg p-3 mb-4 text-sm focus:border-purple-500 outline-none text-white">
+                <option value="openrouter">OpenRouter (Recommended)</option>
                 <option value="gemini">Google Gemini</option>
-                <option value="custom">Custom / Local (Ollama, etc)</option>
+                <option value="openai">OpenAI</option>
+                <option value="ollama">Ollama (Local)</option>
+                <option value="custom">Custom / Other</option>
             </select>
 
-            <label class="text-xs text-gray-400 uppercase font-bold block mb-1">Friendly Name</label>
-            <input id="pName" class="w-full bg-gray-950 border border-gray-700 rounded p-2.5 mb-4 text-sm" placeholder="e.g. My Local Ollama">
-
-            <div id="fieldUrlContainer" class="hidden">
-                <label class="text-xs text-gray-400 uppercase font-bold block mb-1">Base URL</label>
-                <input id="pUrl" class="w-full bg-gray-950 border border-gray-700 rounded p-2.5 mb-4 text-sm" placeholder="http://localhost:11434/v1">
-                <p class="text-xs text-yellow-600 mb-4 -mt-2">For Ollama, use: http://localhost:11434/v1</p>
+            <div id="smartModelContainer">
+                <label class="text-xs text-gray-400 uppercase font-bold block mb-1.5">Model</label>
+                <select id="pPreset" class="w-full bg-gray-950 border border-gray-700 rounded-lg p-3 mb-4 text-sm focus:border-purple-500 outline-none text-white">
+                    </select>
+                <p class="text-xs text-gray-500 mb-4 -mt-2">Prices are auto-calculated.</p>
             </div>
 
-            <label class="text-xs text-gray-400 uppercase font-bold block mb-1">Model ID</label>
-            <input id="pModel" class="w-full bg-gray-950 border border-gray-700 rounded p-2.5 mb-4 text-sm" placeholder="gpt-4o, claude-3-sonnet, llama3">
+            <div id="customFields" class="hidden">
+                <label class="text-xs text-gray-400 uppercase font-bold block mb-1.5">Model ID</label>
+                <input id="pModelRaw" class="w-full bg-gray-950 border border-gray-700 rounded-lg p-3 mb-3 text-sm" placeholder="e.g. llama-3-70b">
+                
+                <label class="text-xs text-gray-400 uppercase font-bold block mb-1.5">Base URL</label>
+                <input id="pUrl" class="w-full bg-gray-950 border border-gray-700 rounded-lg p-3 mb-4 text-sm" placeholder="https://api.example.com/v1">
 
-            <label class="text-xs text-gray-400 uppercase font-bold block mb-1">API Key</label>
-            <input id="pKey" type="password" class="w-full bg-gray-950 border border-gray-700 rounded p-2.5 mb-4 text-sm" placeholder="sk-...">
-
-            <div class="grid grid-cols-2 gap-4 mb-6">
-                <div>
-                    <label class="text-xs text-gray-400 uppercase font-bold block mb-1">Input $/1M</label>
-                    <input id="pIn" type="number" class="w-full bg-gray-950 border border-gray-700 rounded p-2.5 text-sm" placeholder="0.50">
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div>
+                        <label class="text-[10px] text-gray-500 uppercase font-bold">Input $/1M</label>
+                        <input id="pIn" type="number" class="w-full bg-gray-950 border border-gray-700 rounded p-2 text-sm" placeholder="0.50">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-500 uppercase font-bold">Output $/1M</label>
+                        <input id="pOut" type="number" class="w-full bg-gray-950 border border-gray-700 rounded p-2 text-sm" placeholder="1.50">
+                    </div>
                 </div>
-                <div>
-                    <label class="text-xs text-gray-400 uppercase font-bold block mb-1">Output $/1M</label>
-                    <input id="pOut" type="number" class="w-full bg-gray-950 border border-gray-700 rounded p-2.5 text-sm" placeholder="1.50">
-                </div>
             </div>
 
-            <div class="flex gap-3">
-                <button onclick="closeAddModal()" class="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 rounded-lg font-medium">Cancel</button>
-                <button onclick="saveProvider()" class="flex-1 py-2.5 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium">Save</button>
+            <div id="apiKeyContainer">
+                <label class="text-xs text-gray-400 uppercase font-bold block mb-1.5">API Key</label>
+                <input id="pKey" type="password" class="w-full bg-gray-950 border border-gray-700 rounded-lg p-3 mb-6 text-sm focus:border-purple-500 outline-none" placeholder="sk-...">
             </div>
+
+            <button onclick="saveProvider()" class="w-full py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-bold text-white transition shadow-lg shadow-purple-900/20">
+                Connect
+            </button>
         </div>
     </div>
 
-    <!-- Settings Modal -->
     <div id="modalSettings" class="modal fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-sm">
         <div class="bg-gray-900 w-full max-w-sm rounded-xl border border-gray-800 p-6">
             <h3 class="text-xl font-bold mb-4">Settings</h3>
-            <button onclick="clearData()" class="w-full py-3 bg-red-900/30 text-red-400 border border-red-900 hover:bg-red-900/50 rounded-lg mb-3 font-medium">
+            <button onclick="clearData()" class="w-full py-3 bg-red-900/20 text-red-400 border border-red-900/50 hover:bg-red-900/40 rounded-lg mb-3 font-medium transition">
                 ⚠️ Clear All Data
             </button>
             <button onclick="document.getElementById('modalSettings').classList.remove('active')" class="w-full py-3 bg-gray-800 hover:bg-gray-700 rounded-lg font-medium">
@@ -175,14 +171,44 @@
     </div>
 
     <script>
-        /**
-         * AI COST TRACKER v4.0 - Logic Engine
-         * Fixes: Markdown support, robust Custom URL handling, improved CORS error messaging.
-         */
+        /* ---------------- DATA & PRESETS ---------------- */
+        
+        // PRICING PRESETS (Prices per 1M Tokens as of late 2024)
+        // This removes the need for manual entry
+        const PRESETS = {
+            'openrouter': [
+                { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', in: 3.00, out: 15.00 },
+                { id: 'openai/gpt-4o', name: 'GPT-4o', in: 5.00, out: 15.00 },
+                { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini', in: 0.15, out: 0.60 },
+                { id: 'google/gemini-flash-1.5', name: 'Gemini Flash 1.5', in: 0.075, out: 0.30 },
+                { id: 'meta-llama/llama-3.1-70b-instruct', name: 'Llama 3.1 70B', in: 0.4, out: 0.4 }
+            ],
+            'openai': [
+                { id: 'gpt-4o', name: 'GPT-4o', in: 5.00, out: 15.00 },
+                { id: 'gpt-4o-mini', name: 'GPT-4o Mini', in: 0.15, out: 0.60 }
+            ],
+            'gemini': [
+                { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', in: 0.075, out: 0.30 },
+                { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', in: 3.50, out: 10.50 }
+            ],
+            'ollama': [
+                { id: 'llama3', name: 'Llama 3 (Local)', in: 0, out: 0 },
+                { id: 'mistral', name: 'Mistral (Local)', in: 0, out: 0 }
+            ]
+        };
 
-        // --- STATE MANAGEMENT ---
         let providers = JSON.parse(localStorage.getItem('act_providers') || '[]');
         let usage = JSON.parse(localStorage.getItem('act_usage') || '[]');
+
+        /* ---------------- INITIALIZATION ---------------- */
+        document.addEventListener('DOMContentLoaded', () => {
+            renderUI();
+            updateModalUI(); // Init modal state
+            
+            // Listeners for real-time estimation
+            document.getElementById('promptInput').addEventListener('input', updateEstimate);
+            document.getElementById('activeProvider').addEventListener('change', updateEstimate);
+        });
 
         function saveState() {
             localStorage.setItem('act_providers', JSON.stringify(providers));
@@ -190,38 +216,109 @@
             renderUI();
         }
 
-        // --- INITIALIZATION ---
-        document.addEventListener('DOMContentLoaded', () => {
-            renderUI();
-            // Setup input listener for cost estimation
-            document.getElementById('promptInput').addEventListener('input', updateEstimate);
-            document.getElementById('activeProvider').addEventListener('change', updateEstimate);
-        });
+        /* ---------------- UI LOGIC ---------------- */
+        
+        // Modal: Toggle fields based on provider type
+        function updateModalUI() {
+            const type = document.getElementById('pType').value;
+            const smartContainer = document.getElementById('smartModelContainer');
+            const customContainer = document.getElementById('customFields');
+            const keyContainer = document.getElementById('apiKeyContainer');
+            const presetSelect = document.getElementById('pPreset');
+            
+            // 1. Handle Fields Visibility
+            if (type === 'custom') {
+                smartContainer.classList.add('hidden');
+                customContainer.classList.remove('hidden');
+                keyContainer.classList.remove('hidden');
+            } else if (type === 'ollama') {
+                smartContainer.classList.remove('hidden');
+                customContainer.classList.add('hidden');
+                keyContainer.classList.add('hidden'); // Ollama usually no key
+            } else {
+                smartContainer.classList.remove('hidden');
+                customContainer.classList.add('hidden');
+                keyContainer.classList.remove('hidden');
+            }
 
-        // --- RENDERING UI ---
+            // 2. Populate Dropdown from Presets
+            if (type !== 'custom') {
+                presetSelect.innerHTML = '';
+                const list = PRESETS[type] || [];
+                list.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = JSON.stringify(m); // Store full object in value
+                    opt.innerText = m.name;
+                    presetSelect.appendChild(opt);
+                });
+            }
+        }
+
+        function saveProvider() {
+            const type = document.getElementById('pType').value;
+            let name, modelId, inPrice, outPrice, baseUrl, apiKey;
+
+            if (type === 'custom') {
+                // Read Manual Fields
+                modelId = document.getElementById('pModelRaw').value;
+                baseUrl = document.getElementById('pUrl').value;
+                inPrice = parseFloat(document.getElementById('pIn').value) || 0;
+                outPrice = parseFloat(document.getElementById('pOut').value) || 0;
+                name = "Custom (" + modelId + ")";
+                apiKey = document.getElementById('pKey').value;
+                if (!baseUrl) return alert("Base URL required for Custom.");
+            } else {
+                // Read Preset Data
+                const presetData = JSON.parse(document.getElementById('pPreset').value);
+                modelId = presetData.id;
+                name = presetData.name;
+                inPrice = presetData.in;
+                outPrice = presetData.out;
+                
+                // Set Default URLs
+                if (type === 'ollama') baseUrl = 'http://localhost:11434/v1';
+                else if (type === 'openrouter') baseUrl = 'https://openrouter.ai/api/v1';
+                else if (type === 'openai') baseUrl = 'https://api.openai.com/v1';
+                // Gemini handled specially in fetch
+                
+                apiKey = document.getElementById('pKey').value;
+            }
+
+            if (type !== 'ollama' && !apiKey) return alert("API Key required.");
+
+            providers.push({
+                id: Date.now().toString(),
+                type, name, model: modelId, apiKey, baseUrl, inPrice, outPrice, totalCost: 0
+            });
+            
+            saveState();
+            closeAddModal();
+            
+            // Reset inputs
+            document.getElementById('pKey').value = '';
+        }
+
         function renderUI() {
-            // 1. Stats
+            // Stats
             const now = new Date();
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-            const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-            const todayUsage = usage.filter(u => new Date(u.ts) >= startOfDay);
-            const monthUsage = usage.filter(u => new Date(u.ts) >= startOfMonth);
-
-            const sumCost = (arr) => arr.reduce((a, b) => a + (b.cost || 0), 0);
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             
-            document.getElementById('statToday').innerText = `$${sumCost(todayUsage).toFixed(4)}`;
-            document.getElementById('statMonth').innerText = `$${sumCost(monthUsage).toFixed(4)}`;
+            const todayCost = usage.filter(u => new Date(u.ts) >= todayStart).reduce((a,b) => a + b.cost, 0);
+            const monthCost = usage.filter(u => new Date(u.ts) >= startOfMonth).reduce((a,b) => a + b.cost, 0);
+            
+            document.getElementById('statToday').innerText = `$${todayCost.toFixed(4)}`;
+            document.getElementById('statMonth').innerText = `$${monthCost.toFixed(4)}`;
             document.getElementById('statRequests').innerText = usage.length;
-            document.getElementById('statTokens').innerText = usage.reduce((a,b) => a + (b.inTok + b.outTok), 0).toLocaleString();
+            document.getElementById('statTokens').innerText = usage.reduce((a,b) => a + b.inTok + b.outTok, 0).toLocaleString();
 
-            // 2. Providers List
+            // Provider List
             const list = document.getElementById('providerList');
             const empty = document.getElementById('emptyProviders');
             const select = document.getElementById('activeProvider');
             
             list.innerHTML = '';
-            const savedVal = select.value; // Preserve selection
+            const savedVal = select.value;
             select.innerHTML = '<option value="">Select Provider...</option>';
 
             if (providers.length === 0) {
@@ -229,273 +326,164 @@
             } else {
                 empty.classList.add('hidden');
                 providers.forEach(p => {
-                    // Add to Dashboard List
+                    // List Item
                     const div = document.createElement('div');
                     div.className = 'bg-gray-900 p-4 rounded-lg border border-gray-800 flex justify-between items-center group hover:border-gray-700 transition';
                     div.innerHTML = `
                         <div class="flex items-center gap-3">
-                            <div class="h-8 w-8 rounded-full bg-gradient-to-br from-gray-800 to-black border border-gray-700 flex items-center justify-center text-xs font-bold">
+                            <div class="h-10 w-10 rounded-full bg-gradient-to-br from-gray-800 to-black border border-gray-700 flex items-center justify-center font-bold text-gray-400">
                                 ${p.type.substring(0,2).toUpperCase()}
                             </div>
                             <div>
-                                <p class="font-semibold text-sm">${p.name}</p>
-                                <p class="text-xs text-gray-500">${p.model}</p>
+                                <p class="font-bold text-sm text-gray-200">${p.name}</p>
+                                <p class="text-xs text-gray-500 font-mono">${p.model}</p>
                             </div>
                         </div>
-                        <div class="flex items-center gap-4">
-                            <span class="text-xs text-gray-500 font-mono">$${p.totalCost?.toFixed(4) || '0.0000'}</span>
-                            <button onclick="deleteProvider('${p.id}')" class="text-gray-600 hover:text-red-400">✕</button>
+                        <div class="text-right">
+                             <p class="text-xs text-gray-400 font-mono mb-1">$${p.totalCost?.toFixed(4)}</p>
+                             <button onclick="deleteProvider('${p.id}')" class="text-xs text-red-900 hover:text-red-400 transition">Remove</button>
                         </div>
                     `;
                     list.appendChild(div);
-
-                    // Add to Dropdown
+                    
+                    // Dropdown Item
                     const opt = document.createElement('option');
                     opt.value = p.id;
-                    opt.innerText = `${p.name} (${p.model})`;
+                    opt.innerText = `${p.name}`;
                     select.appendChild(opt);
                 });
                 select.value = savedVal;
             }
         }
 
-        // --- CORE LOGIC: ESTIMATION ---
         function updateEstimate() {
             const text = document.getElementById('promptInput').value;
             const pid = document.getElementById('activeProvider').value;
             const display = document.getElementById('estCost');
-
+            
             if (!text || !pid) {
                 display.innerText = '$0.0000 est.';
+                display.className = "text-xs text-gray-500 font-mono";
                 return;
             }
-
+            
             const p = providers.find(x => x.id === pid);
-            // Rough rule of thumb: 1 token ~= 4 chars
             const tokens = Math.ceil(text.length / 4);
             const cost = (tokens / 1_000_000) * p.inPrice;
             
             display.innerText = `~${tokens} toks • $${cost.toFixed(6)} est.`;
+            display.className = "text-xs text-green-400 font-mono font-bold";
         }
 
-        // --- CORE LOGIC: API CALLS ---
+        /* ---------------- API LOGIC ---------------- */
+        
         async function runPrompt() {
             const pid = document.getElementById('activeProvider').value;
             const prompt = document.getElementById('promptInput').value;
+            if (!pid || !prompt) return alert("Select provider and enter prompt.");
+
+            const p = providers.find(x => x.id === pid);
             const btn = document.getElementById('sendBtn');
             const outArea = document.getElementById('outputArea');
             const outContent = document.getElementById('outputContent');
             const runStats = document.getElementById('runStats');
 
-            if (!pid) return alert("Please select a provider.");
-            if (!prompt) return alert("Please enter a prompt.");
-
-            const provider = providers.find(x => x.id === pid);
-            
-            // UI Loading State
-            btn.innerText = "Thinking...";
+            btn.innerHTML = "Thinking..."; 
             btn.disabled = true;
             outArea.classList.remove('hidden');
-            outContent.innerHTML = '<span class="animate-pulse text-gray-500">Waiting for response...</span>';
+            outContent.innerHTML = '<span class="animate-pulse text-gray-500">Connecting to ' + p.name + '...</span>';
 
             try {
                 let result;
-                
-                if (provider.type === 'gemini') {
-                    result = await callGemini(provider, prompt);
+                if (p.type === 'gemini') {
+                    result = await callGemini(p, prompt);
                 } else {
-                    // Universal Handler (OpenAI, Anthropic, Custom/Ollama)
-                    result = await callUniversal(provider, prompt);
+                    // OpenRouter, OpenAI, Ollama, Custom all use standard format
+                    result = await callStandard(p, prompt);
                 }
 
-                // Render Markdown
+                // Success
                 outContent.innerHTML = marked.parse(result.text);
-
-                // Stats
-                const cost = (result.inTok / 1000000 * provider.inPrice) + (result.outTok / 1000000 * provider.outPrice);
+                const cost = (result.inTok / 1e6 * p.inPrice) + (result.outTok / 1e6 * p.outPrice);
+                
                 runStats.innerText = `In: ${result.inTok} • Out: ${result.outTok} • Cost: $${cost.toFixed(6)}`;
-
-                // Save Data
-                usage.push({
-                    id: Date.now(),
-                    pid: provider.id,
-                    ts: new Date().toISOString(),
-                    inTok: result.inTok,
-                    outTok: result.outTok,
-                    cost: cost
+                
+                // Update Storage
+                usage.push({ 
+                    id: Date.now(), pid: p.id, ts: new Date().toISOString(), 
+                    inTok: result.inTok, outTok: result.outTok, cost 
                 });
-                
-                // Update Provider Total
-                provider.totalCost = (provider.totalCost || 0) + cost;
-                
+                p.totalCost = (p.totalCost || 0) + cost;
                 saveState();
 
-            } catch (err) {
-                outContent.innerHTML = `<div class="text-red-400 bg-red-900/20 p-3 rounded border border-red-900">
-                    <strong>Error:</strong> ${err.message}
-                    <br/><br/>
-                    <small class="text-gray-400">Tip: If this is a CORS error, use a Local LLM (Ollama) or a provider that allows browser access.</small>
+            } catch (e) {
+                outContent.innerHTML = `<div class="bg-red-900/20 border border-red-800 text-red-300 p-4 rounded-lg text-sm">
+                    <strong>Request Failed:</strong> ${e.message}<br/><br/>
+                    ${p.type === 'anthropic' || p.type === 'openai' ? 'Tip: Try using <b>OpenRouter</b> for better browser support.' : ''}
+                    ${p.type === 'ollama' ? 'Tip: Ensure Ollama is running with <code>OLLAMA_ORIGINS="*"</code>' : ''}
                 </div>`;
-                console.error(err);
             } finally {
-                btn.innerText = "Run Request";
+                btn.innerHTML = "Run Request";
                 btn.disabled = false;
             }
         }
 
-        // --- API HANDLERS ---
+        async function callStandard(p, prompt) {
+            const url = p.baseUrl.endsWith('/') ? `${p.baseUrl}chat/completions` : `${p.baseUrl}/chat/completions`;
+            
+            const headers = { 
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${p.apiKey}` 
+            };
+            
+            // OpenRouter specific headers
+            if (p.type === 'openrouter') {
+                headers["HTTP-Referer"] = window.location.href;
+                headers["X-Title"] = "AI Cost Tracker";
+            }
 
-        async function callUniversal(p, prompt) {
-            // Determine Endpoint
-            let url = '';
-            let headers = { "Content-Type": "application/json" };
-            let body = {
+            const body = {
                 model: p.model,
                 messages: [{ role: "user", content: prompt }],
-                stream: false 
+                stream: false
             };
 
-            if (p.type === 'openai') {
-                url = 'https://api.openai.com/v1/chat/completions';
-                headers["Authorization"] = `Bearer ${p.apiKey}`;
-            } else if (p.type === 'anthropic') {
-                // Anthropic requires a proxy usually, but we try direct just in case they change headers
-                url = 'https://api.anthropic.com/v1/messages';
-                headers["x-api-key"] = p.apiKey;
-                headers["anthropic-version"] = "2023-06-01";
-                headers["anthropic-dangerous-direct-browser-access"] = "true"; // Required for browser
-                body = {
-                    model: p.model,
-                    max_tokens: 1024,
-                    messages: [{ role: "user", content: prompt }]
-                };
-            } else if (p.type === 'custom') {
-                // Custom / Ollama / Groq
-                url = p.baseUrl.endsWith('/') ? `${p.baseUrl}chat/completions` : `${p.baseUrl}/chat/completions`;
-                // Some local LLMs don't need keys, but if provided, send it
-                if (p.apiKey) headers["Authorization"] = `Bearer ${p.apiKey}`;
-            }
+            const r = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+            if (!r.ok) throw new Error(await r.text());
+            const json = await r.json();
 
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: headers,
-                body: JSON.stringify(body)
-            });
-
-            if (!response.ok) {
-                const errText = await response.text();
-                throw new Error(`API Error (${response.status}): ${errText}`);
-            }
-
-            const json = await response.json();
-            
-            // Parsing Logic
-            let text = "";
-            let inTok = 0;
-            let outTok = 0;
-
-            if (p.type === 'anthropic') {
-                text = json.content[0].text;
-                inTok = json.usage.input_tokens;
-                outTok = json.usage.output_tokens;
-            } else {
-                // OpenAI / Compatible Standard
-                text = json.choices[0].message.content;
-                inTok = json.usage?.prompt_tokens || prompt.length / 4;
-                outTok = json.usage?.completion_tokens || text.length / 4;
-            }
-
+            const text = json.choices[0].message.content;
+            const inTok = json.usage?.prompt_tokens || prompt.length/4;
+            const outTok = json.usage?.completion_tokens || text.length/4;
             return { text, inTok, outTok };
         }
 
         async function callGemini(p, prompt) {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${p.model}:generateContent?key=${p.apiKey}`;
-            const response = await fetch(url, {
+            const r = await fetch(url, {
                 method: 'POST',
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }]
-                })
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
             });
-
-            if (!response.ok) throw new Error(await response.text());
-            const json = await response.json();
-            
+            if (!r.ok) throw new Error(await r.text());
+            const json = await r.json();
             const text = json.candidates[0].content.parts[0].text;
-            // Gemini doesn't always return usage in v1beta without extra fields, estimating:
-            return { 
-                text, 
-                inTok: Math.ceil(prompt.length/4), 
-                outTok: Math.ceil(text.length/4) 
-            };
+            return { text, inTok: Math.ceil(prompt.length/4), outTok: Math.ceil(text.length/4) };
         }
 
-        // --- MODAL ACTIONS ---
-        function openAddModal() { document.getElementById('modalAdd').classList.add('active'); }
+        // Standard Helpers
+        function openAddModal() { document.getElementById('modalAdd').classList.add('active'); updateModalUI(); }
         function closeAddModal() { document.getElementById('modalAdd').classList.remove('active'); }
         function openSettings() { document.getElementById('modalSettings').classList.add('active'); }
-
-        function toggleFields() {
-            const type = document.getElementById('pType').value;
-            const urlContainer = document.getElementById('fieldUrlContainer');
-            if (type === 'custom') {
-                urlContainer.classList.remove('hidden');
-                document.getElementById('pModel').placeholder = "llama3, mistral, etc.";
-            } else {
-                urlContainer.classList.add('hidden');
-            }
-        }
-
-        function saveProvider() {
-            const type = document.getElementById('pType').value;
-            const name = document.getElementById('pName').value || type;
-            const model = document.getElementById('pModel').value;
-            const key = document.getElementById('pKey').value;
-            const baseUrl = document.getElementById('pUrl').value;
-            const inPrice = parseFloat(document.getElementById('pIn').value) || 0;
-            const outPrice = parseFloat(document.getElementById('pOut').value) || 0;
-
-            if (!model) return alert("Model ID is required");
-            if (type !== 'custom' && !key) return alert("API Key is required");
-            if (type === 'custom' && !baseUrl) return alert("Base URL required for custom providers");
-
-            providers.push({
-                id: Date.now().toString(),
-                type, name, model, apiKey: key, baseUrl, inPrice, outPrice, totalCost: 0
-            });
-            
-            saveState();
-            closeAddModal();
-            
-            // Clear inputs
-            document.getElementById('pKey').value = '';
-            document.getElementById('pName').value = '';
-        }
-
-        function deleteProvider(id) {
-            if(confirm('Remove this provider?')) {
-                providers = providers.filter(p => p.id !== id);
-                saveState();
-            }
-        }
-
-        function clearData() {
-            if(confirm('Delete ALL data? This cannot be undone.')) {
-                providers = [];
-                usage = [];
-                saveState();
-                document.getElementById('modalSettings').classList.remove('active');
-            }
-        }
-
+        function deleteProvider(id) { if(confirm('Remove provider?')) { providers = providers.filter(p=>p.id!==id); saveState(); }}
+        function clearData() { if(confirm('Delete all history?')) { providers=[]; usage=[]; saveState(); document.getElementById('modalSettings').classList.remove('active'); }}
         function exportData() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({providers, usage}));
-            const dlAnchorElem = document.createElement('a');
-            dlAnchorElem.setAttribute("href", dataStr);
-            dlAnchorElem.setAttribute("download", "ai_cost_tracker_backup.json");
-            dlAnchorElem.click();
+            const blob = new Blob([JSON.stringify({providers, usage}, null, 2)], {type : 'application/json'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'ai_tracker_backup.json';
+            a.click();
         }
-
     </script>
 </body>
 </html>
