@@ -306,24 +306,29 @@ document.addEventListener("DOMContentLoaded", () => {
 
 /* ------------------------ UI WIRING ------------------------ */
 function wireUI() {
-    // Buttons
-    document.getElementById("addApiKeyBtn")?.addEventListener("click", openAddProvider);
-    document.getElementById("addApiKeyBtn2")?.addEventListener("click", openAddProvider);
+    setTimeout(() => {
+        // Buttons
+        const btn1 = document.getElementById("addApiKeyBtn");
+        const btn2 = document.getElementById("addApiKeyBtn2");
+        
+        if (btn1) btn1.addEventListener("click", openAddProvider);
+        if (btn2) btn2.addEventListener("click", openAddProvider);
 
-    document.getElementById("settingsBtn")?.addEventListener("click", openSettings);
-    document.getElementById("settingsClose")?.addEventListener("click", closeSettings);
+        document.getElementById("settingsBtn")?.addEventListener("click", openSettings);
+        document.getElementById("settingsClose")?.addEventListener("click", closeSettings);
 
-    document.getElementById("addProviderCancel")?.addEventListener("click", closeAddProvider);
-    document.getElementById("addProviderSave")?.addEventListener("click", saveProvider);
+        document.getElementById("addProviderCancel")?.addEventListener("click", closeAddProvider);
+        document.getElementById("addProviderSave")?.addEventListener("click", saveProvider);
 
-    document.getElementById("clearData")?.addEventListener("click", clearAllData);
+        document.getElementById("clearData")?.addEventListener("click", clearAllData);
 
-    document.getElementById("exportBtn")?.addEventListener("click", exportData);
+        document.getElementById("exportBtn")?.addEventListener("click", exportData);
 
-    // Playground
-    document.getElementById("playgroundProvider")?.addEventListener("change", updatePlaygroundEst);
-    document.getElementById("playgroundInput")?.addEventListener("input", updatePlaygroundEst);
-    document.getElementById("playgroundSend")?.addEventListener("click", runPlayground);
+        // Playground
+        document.getElementById("playgroundProvider")?.addEventListener("change", updatePlaygroundEst);
+        document.getElementById("playgroundInput")?.addEventListener("input", updatePlaygroundEst);
+        document.getElementById("playgroundSend")?.addEventListener("click", runPlayground);
+    }, 100);
 }
 
 /* ---------------------- MAIN RENDER ------------------------ */
