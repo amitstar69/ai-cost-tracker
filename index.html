@@ -3,42 +3,37 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI Cost Tracker v3.1</title>
-
-    <!-- TailwindCSS -->
+    <title>AI Cost Tracker v3.1 (Fixed)</title>
     <script src="https://cdn.tailwindcss.com"></script>
-
     <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
-body {
-    font-family: 'Inter', sans-serif;
-}
-
-/* FORCE modal visibility — overrides Tailwind */
-.modal {
-    display: none !important;
-}
-
-.modal.active {
-    display: flex !important;
-}
-
-.glass {
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(14px);
-}
-
-.gradient-bg {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-</style>
-
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .modal {
+            display: none;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(14px);
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        /* Utility to truncate long text */
+        .truncated {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+    </style>
 </head>
-
 <body class="bg-gray-950 text-white min-h-screen">
 
-    <!-- HEADER / TOP BAR -->
     <header class="gradient-bg shadow-lg px-6 py-5">
         <div class="max-w-5xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-3">
@@ -48,13 +43,11 @@ body {
                     <p class="text-purple-200 text-sm">Private. Browser-only. Zero backend.</p>
                 </div>
             </div>
-
             <div class="flex items-center gap-3">
                 <button id="exportBtn"
                     class="px-4 py-2 bg-white/20 hover:bg-white/30 transition rounded-lg text-sm font-medium">
                     Export
                 </button>
-
                 <button id="settingsBtn"
                     class="p-2 bg-white/10 hover:bg-white/20 transition rounded-lg text-xl">
                     ⚙️
@@ -63,10 +56,7 @@ body {
         </div>
     </header>
 
-    <!-- MAIN CONTAINER -->
     <main class="max-w-5xl mx-auto px-4 py-10">
-
-        <!-- EMPTY STATE -->
         <div id="emptyState" class="text-center py-16 fade-in">
             <div class="text-6xl mb-4">🚀</div>
             <h2 class="text-3xl font-bold mb-3">Welcome to AI Cost Tracker</h2>
@@ -74,47 +64,37 @@ body {
                 Track your OpenAI, Claude, Gemini, and custom model costs — all locally in your browser.
                 No servers. No logins. No telemetry.
             </p>
-
             <button id="addApiKeyBtn"
                 class="px-8 py-4 bg-purple-600 hover:bg-purple-700 transition rounded-xl text-lg font-semibold shadow-lg">
                 🔑 Add Your First API Key
             </button>
-
             <p class="text-gray-500 text-sm mt-3">Your keys never leave your device.</p>
         </div>
-        <!-- DASHBOARD (Visible when providers + usage exist) -->
+
         <div id="dashboard" class="hidden">
-
-            <!-- TOP METRICS -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-
                 <div class="p-6 rounded-xl gradient-bg shadow-lg">
                     <p class="text-purple-200 text-sm mb-1">Today</p>
                     <h3 id="todayCost" class="text-2xl font-bold">$0.00</h3>
                     <p id="todayRequests" class="text-purple-100 text-xs mt-1">0 requests</p>
                 </div>
-
                 <div class="p-6 rounded-xl gradient-bg shadow-lg">
                     <p class="text-purple-200 text-sm mb-1">This Week</p>
                     <h3 id="weekCost" class="text-2xl font-bold">$0.00</h3>
                     <p id="weekRequests" class="text-purple-100 text-xs mt-1">0 requests</p>
                 </div>
-
                 <div class="p-6 rounded-xl gradient-bg shadow-lg">
                     <p class="text-purple-200 text-sm mb-1">This Month</p>
                     <h3 id="monthCost" class="text-2xl font-bold">$0.00</h3>
                     <p id="monthRequests" class="text-purple-100 text-xs mt-1">0 requests</p>
                 </div>
-
                 <div class="p-6 rounded-xl gradient-bg shadow-lg">
                     <p class="text-purple-200 text-sm mb-1">All Time</p>
                     <h3 id="allTimeCost" class="text-2xl font-bold">$0.00</h3>
                     <p id="allTimeRequests" class="text-purple-100 text-xs mt-1">0 requests</p>
                 </div>
-
             </div>
 
-            <!-- CONNECTED APIs -->
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-semibold">Connected APIs</h2>
                 <button id="addApiKeyBtn2"
@@ -122,27 +102,18 @@ body {
                     + Add
                 </button>
             </div>
-
             <div id="providersList" class="space-y-4 mb-12">
-                <!-- Providers dynamically inserted here -->
-            </div>
+                </div>
 
-            <!-- PLAYGROUND -->
             <div class="bg-gray-900 rounded-xl p-6 shadow-lg">
-
                 <h2 class="text-xl font-semibold mb-4">Playground</h2>
-
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-
-                    <!-- Provider Select -->
                     <div>
                         <label class="text-sm text-gray-400 mb-2 block">Provider &amp; Model</label>
                         <select id="playgroundProvider" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700">
                             <option value="">-- Select --</option>
                         </select>
                     </div>
-
-                    <!-- Estimated Cost -->
                     <div>
                         <label class="text-sm text-gray-400 mb-2 block">Estimated Cost</label>
                         <div id="playgroundEstimate"
@@ -150,16 +121,13 @@ body {
                             $0.0000
                         </div>
                     </div>
-
                 </div>
 
-                <!-- Message Box -->
                 <label class="text-sm text-gray-400 mb-2 block">Message</label>
                 <textarea id="playgroundInput"
                     class="w-full p-4 rounded-lg bg-gray-800 border border-gray-700 h-40 resize-none"
                     placeholder="Type a message..."></textarea>
 
-                <!-- SEND BUTTON -->
                 <div class="text-right mt-4">
                     <button id="playgroundSend"
                         class="px-6 py-3 bg-purple-600 hover:bg-purple-700 transition rounded-lg font-medium">
@@ -167,39 +135,27 @@ body {
                     </button>
                 </div>
 
-                <!-- OUTPUT -->
                 <div id="playgroundOutput"
                     class="mt-6 p-4 bg-gray-800 border border-gray-700 rounded-lg text-gray-300 whitespace-pre-line hidden">
                 </div>
 
-                <!-- Token + Cost Summary -->
                 <div id="playgroundStats" class="mt-4 text-sm text-gray-400 hidden">
                     <p>Input Tokens: <span id="statInputTokens">0</span></p>
                     <p>Output Tokens: <span id="statOutputTokens">0</span></p>
                     <p>Total Cost: $<span id="statCost">0.0000</span></p>
                 </div>
+            </div> </div> </main>
 
-            </div> <!-- END PLAYGROUND -->
-        </div> <!-- END DASHBOARD -->
-    </main>
-
-
-    <!-- --------------------------- MODALS --------------------------- -->
-
-    <!-- ADD PROVIDER MODAL -->
-    <div id="settingsModal"
-    class="modal fixed inset-0 items-center justify-center bg-black/60 z-50">
+    <div id="addProviderModal"
+        class="modal fixed inset-0 items-center justify-center bg-black/60 z-50">
         <div class="bg-gray-900 p-6 rounded-xl w-full max-w-md shadow-xl">
-
             <h2 class="text-xl font-semibold mb-4">Add API Provider</h2>
-
-            <!-- Privacy/Safety -->
             <div class="bg-gray-800 p-3 rounded-lg text-sm text-gray-300 mb-4">
                 <p class="font-semibold mb-1">🔒 Privacy &amp; Security</p>
                 <ul class="list-disc ml-5 text-gray-400 text-xs">
                     <li>Your API keys are stored <b>only in your browser</b> (localStorage).</li>
                     <li>Keys, prompts, and responses <b>never leave your device</b>.</li>
-                    <li>We use only <b>anonymous</b> traffic analytics (no cookies, no PII).</li>
+                    <li>We use only <b>anonymous</b> traffic analytics.</li>
                 </ul>
             </div>
 
@@ -212,7 +168,7 @@ body {
                 <option value="custom">Custom</option>
             </select>
 
-            <label class="block text-sm text-gray-300 mb-1">Model</label>
+            <label class="block text-sm text-gray-300 mb-1">Model / URL</label>
             <input id="providerModel"
                 class="w-full p-3 mb-3 rounded-lg bg-gray-800 border border-gray-700"
                 placeholder="e.g., gpt-4o, claude-3-sonnet, gemini-1.5-flash" />
@@ -221,7 +177,20 @@ body {
             <input id="providerKey" type="password"
                 class="w-full p-3 mb-3 rounded-lg bg-gray-800 border border-gray-700"
                 placeholder="Paste API key" />
-<!-- Pricing fields temporarily removed -->
+
+            <div class="grid grid-cols-2 gap-4 mb-3">
+                <div>
+                    <label class="block text-sm text-gray-300 mb-1">Input Price /M</label>
+                    <input id="providerInCost" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700"
+                        placeholder="0.50" />
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-300 mb-1">Output Price /M</label>
+                    <input id="providerOutCost" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700"
+                        placeholder="1.50" />
+                </div>
+            </div>
+
             <label class="block text-sm text-gray-300 mb-1">Nickname (optional)</label>
             <input id="providerNickname"
                 class="w-full p-3 mb-4 rounded-lg bg-gray-800 border border-gray-700"
@@ -237,26 +206,20 @@ body {
                     Save
                 </button>
             </div>
-
         </div>
     </div>
 
-
-    <!-- SETTINGS MODAL -->
     <div id="settingsModal"
-    class="modal hidden fixed inset-0 items-center justify-center bg-black/60 z-50">
+        class="modal fixed inset-0 items-center justify-center bg-black/60 z-50">
         <div class="bg-gray-900 p-6 rounded-xl w-full max-w-md shadow-xl">
             <h2 class="text-xl font-semibold mb-4">Settings</h2>
-
             <button id="clearData"
                 class="w-full px-4 py-3 bg-red-600 hover:bg-red-700 transition rounded-lg mb-4">
                 Clear All Data
             </button>
-
             <p class="text-gray-400 text-sm mb-6">
                 Clears all API keys, providers, and usage history from this browser.
             </p>
-
             <button id="settingsClose"
                 class="w-full px-4 py-3 bg-gray-700 hover:bg-gray-600 transition rounded-lg">
                 Close
@@ -264,528 +227,501 @@ body {
         </div>
     </div>
 
-<script>
-/* -------------------------------------------------------
-   AI COST TRACKER v3.1 — COMPLETE JS ENGINE
-   ------------------------------------------------------- */
+    <script>
+    /* -------------------------------------------------------
+    AI COST TRACKER v3.1 — BUG-FIXED JS ENGINE
+    ------------------------------------------------------- */
 
-/* --------------------- STORAGE HELPERS --------------------- */
-function load(key, fallback) {
-    try {
-        return JSON.parse(localStorage.getItem(key)) ?? fallback;
-    } catch {
-        return fallback;
+    /* --------------------- STORAGE HELPERS --------------------- */
+    function load(key, fallback) {
+        try {
+            return JSON.parse(localStorage.getItem(key)) ?? fallback;
+        } catch {
+            return fallback;
+        }
     }
-}
+    function save(key, value) {
+        localStorage.setItem(key, JSON.stringify(value));
+    }
 
-function save(key, value) {
-    localStorage.setItem(key, JSON.stringify(value));
-}
+    /* --------------------- GLOBAL STATE ----------------------- */
+    let providers = load("providers", []);
+    let usage = load("usage", []);
 
-/* --------------------- GLOBAL STATE ----------------------- */
-let providers = load("providers", []);
-let usage = load("usage", []);
+    /* ---------------------- UTILITIES -------------------------- */
+    function uid() {
+        return Date.now().toString() + Math.floor(Math.random() * 99999);
+    }
+    function estTokens(text) {
+        // Rough estimate: 1 token ~= 4 chars
+        return Math.max(1, Math.ceil((text || "").length / 4));
+    }
+    function fireEvent(name) {
+        if (window.plausible) plausible(name);
+    }
 
-/* ---------------------- UTILITIES -------------------------- */
-function uid() {
-    return Date.now().toString() + Math.floor(Math.random() * 99999);
-}
+    /* ---------------------- INITIAL RENDER --------------------- */
+    document.addEventListener("DOMContentLoaded", () => {
+        renderApp();
+        wireUI();
+        wireAnalyticsScript();
+    });
 
-function estTokens(text) {
-    return Math.max(1, Math.ceil((text || "").length / 4));
-}
-
-function fireEvent(name) {
-    if (window.plausible) plausible(name);
-}
-
-/* ---------------------- INITIAL RENDER --------------------- */
-document.addEventListener("DOMContentLoaded", () => {
-    renderApp();
-    wireUI();
-    wireAnalyticsScript();
-});
-
-/* ------------------------ UI WIRING ------------------------ */
-function wireUI() {
-    setTimeout(() => {
-        // Buttons
-        const btn1 = document.getElementById("addApiKeyBtn");
-        const btn2 = document.getElementById("addApiKeyBtn2");
-        
-        if (btn1) btn1.addEventListener("click", openAddProvider);
-        if (btn2) btn2.addEventListener("click", openAddProvider);
-
+    /* ------------------------ UI WIRING ------------------------ */
+    function wireUI() {
+        document.getElementById("addApiKeyBtn")?.addEventListener("click", openAddProvider);
+        document.getElementById("addApiKeyBtn2")?.addEventListener("click", openAddProvider);
         document.getElementById("settingsBtn")?.addEventListener("click", openSettings);
         document.getElementById("settingsClose")?.addEventListener("click", closeSettings);
-
         document.getElementById("addProviderCancel")?.addEventListener("click", closeAddProvider);
         document.getElementById("addProviderSave")?.addEventListener("click", saveProvider);
-
         document.getElementById("clearData")?.addEventListener("click", clearAllData);
-
         document.getElementById("exportBtn")?.addEventListener("click", exportData);
 
         // Playground
         document.getElementById("playgroundProvider")?.addEventListener("change", updatePlaygroundEst);
         document.getElementById("playgroundInput")?.addEventListener("input", updatePlaygroundEst);
         document.getElementById("playgroundSend")?.addEventListener("click", runPlayground);
-    }, 100);
-}
-
-/* ---------------------- MAIN RENDER ------------------------ */
-function renderApp() {
-    const empty = document.getElementById("emptyState");
-    const dash = document.getElementById("dashboard");
-
-    if (providers.length === 0) {
-        empty.classList.remove("hidden");
-        dash.classList.add("hidden");
-        return;
-    }
-
-    empty.classList.add("hidden");
-    dash.classList.remove("hidden");
-
-    renderProviders();
-    renderPlaygroundProviders();
-    renderDashboardStats();
-}
-
-/* ---------------------- PROVIDER CARDS ---------------------- */
-function renderProviders() {
-    const box = document.getElementById("providersList");
-    box.innerHTML = "";
-
-    providers.forEach(p => {
-        const div = document.createElement("div");
-        div.className = "bg-gray-900 p-4 rounded-lg border border-gray-700 flex justify-between items-center";
-
-        div.innerHTML = `
-            <div>
-                <p class="font-semibold">${p.nickname || p.name}</p>
-                <p class="text-xs text-gray-400">${p.model}</p>
-                <p class="text-xs text-gray-500 mt-1">$${getProviderTotal(p.id).toFixed(4)} total</p>
-            </div>
-
-            <button class="text-red-400 hover:text-red-300 text-lg" data-id="${p.id}">
-                ✕
-            </button>
-        `;
-
-        div.querySelector("button").addEventListener("click", () => deleteProvider(p.id));
-
-        box.appendChild(div);
-    });
-}
-
-function getProviderTotal(id) {
-    return usage.filter(u => u.providerId === id).reduce((s, u) => s + u.cost, 0);
-}
-
-function deleteProvider(id) {
-    if (!confirm("Remove this provider?")) return;
-
-    providers = providers.filter(p => p.id !== id);
-    save("providers", providers);
-
-    renderApp();
-}
-
-/* ---------------------- PLAYGROUND PROVIDER DROPDOWN -------- */
-function renderPlaygroundProviders() {
-    const sel = document.getElementById("playgroundProvider");
-    sel.innerHTML = `<option value="">-- Select --</option>`;
-
-    providers.forEach(p => {
-        sel.innerHTML += `
-            <option value="${p.id}">${p.nickname || p.name} — ${p.model}</option>
-        `;
-    });
-}
-
-/* ------------------------ DASHBOARD STATS ------------------ */
-function renderDashboardStats() {
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const weekStart = new Date(now.getTime() - 7 * 86400000);
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-
-    function calc(start) {
-        return usage.filter(u => new Date(u.ts) >= start)
-                    .reduce((s, u) => s + u.cost, 0);
-    }
-    function count(start) {
-        return usage.filter(u => new Date(u.ts) >= start).length;
-    }
-
-    document.getElementById("todayCost").innerText = "$" + calc(todayStart).toFixed(4);
-    document.getElementById("weekCost").innerText = "$" + calc(weekStart).toFixed(4);
-    document.getElementById("monthCost").innerText = "$" + calc(monthStart).toFixed(4);
-    document.getElementById("allTimeCost").innerText = "$" + usage.reduce((s, u) => s + u.cost, 0).toFixed(4);
-
-    document.getElementById("todayRequests").innerText = count(todayStart) + " requests";
-    document.getElementById("weekRequests").innerText = count(weekStart) + " requests";
-    document.getElementById("monthRequests").innerText = count(monthStart) + " requests";
-    document.getElementById("allTimeRequests").innerText = usage.length + " requests";
-}
-
-/* -------------------------- MODALS -------------------------- */
-function openAddProvider() {
-    document.getElementById("addProviderModal").classList.add("active");
-}
-function closeAddProvider() {
-    document.getElementById("addProviderModal").classList.remove("active");
-}
-function openSettings() {
-    document.getElementById("settingsModal").classList.add("active");
-}
-function closeSettings() {
-    document.getElementById("settingsModal").classList.remove("active");
-}
-
-/* ----------------------- SAVE PROVIDER ----------------------- */
-function saveProvider() {
-    const type = document.getElementById("providerType").value;
-    const model = document.getElementById("providerModel").value.trim();
-    const key = document.getElementById("providerKey").value.trim();
-  const inCost = 0;    // pricing temporarily removed
-const outCost = 0;   // pricing temporarily removed
-
-const nickname = document.getElementById("providerNickname").value.trim();
-
-    if (!model || !key) {
-        alert("Model and API key required.");
-        return;
-    }
-
-    providers.push({
-        id: uid(),
-        type,
-        name: type,
-        model,
-        apiKey: key,
-        inCost: inCost / 1_000_000,
-        outCost: outCost / 1_000_000,
-        nickname
-    });
-
-    save("providers", providers);
-    fireEvent("api_key_added");
-
-    closeAddProvider();
-    renderApp();
-}
-
-/* -------------------------- PLAYGROUND ------------------------ */
-function updatePlaygroundEst() {
-    const providerId = document.getElementById("playgroundProvider").value;
-
-    if (!providerId) {
-        document.getElementById("playgroundEstimate").innerText = "$0.0000";
-        return;
-    }
-
-    // Cost per token not configured yet
-    document.getElementById("playgroundEstimate").innerText = "N/A";
-}
-
-async function runPlayground() {
-    const providerId = document.getElementById("playgroundProvider").value;
-    const msg = document.getElementById("playgroundInput").value.trim();
-
-    if (!providerId) return alert("Select a provider");
-    if (!msg) return alert("Enter a message");
-
-    const p = providers.find(x => x.id === providerId);
-
-    document.getElementById("playgroundSend").innerText = "Sending…";
-
-    try {
-        const result = await callLLM(p, msg);
-
-        // Show output
-        document.getElementById("playgroundOutput").innerText = result.text;
-        document.getElementById("playgroundOutput").classList.remove("hidden");
-
-        // Stats
-        document.getElementById("statInputTokens").innerText = result.inTok;
-        document.getElementById("statOutputTokens").innerText = result.outTok;
-        document.getElementById("statCost").innerText = result.cost.toFixed(6);
-        document.getElementById("playgroundStats").classList.remove("hidden");
-
-        // Save usage
-        usage.push({
-            id: uid(),
-            providerId: p.id,
-            provider: p.type,
-            model: p.model,
-            ts: new Date().toISOString(),
-            inTok: result.inTok,
-            outTok: result.outTok,
-            cost: result.cost
+        
+        // UI Tweak: Change placeholder if Custom is selected
+        document.getElementById("providerType")?.addEventListener("change", (e) => {
+            const input = document.getElementById("providerModel");
+            if (e.target.value === "custom") {
+                input.placeholder = "https://your-custom-endpoint.com/v1/chat/completions";
+            } else {
+                input.placeholder = "e.g., gpt-4o, claude-3-sonnet, gemini-1.5-flash";
+            }
         });
-        save("usage", usage);
+    }
 
-        fireEvent("playground_used");
+    /* ---------------------- MAIN RENDER ------------------------ */
+    function renderApp() {
+        const empty = document.getElementById("emptyState");
+        const dash = document.getElementById("dashboard");
+
+        if (providers.length === 0) {
+            empty.classList.remove("hidden");
+            dash.classList.add("hidden");
+            return;
+        }
+        empty.classList.add("hidden");
+        dash.classList.remove("hidden");
+
+        renderProviders();
+        renderPlaygroundProviders();
         renderDashboardStats();
-
-    } catch (err) {
-        alert("Error: " + err.message);
     }
 
-    document.getElementById("playgroundSend").innerText = "Send →";
-}
-
-/* ---------------------- PROVIDER API HANDLERS ---------------------- */
-async function callLLM(p, prompt) {
-    switch (p.type) {
-        case "openai":
-            return callOpenAI(p, prompt);
-        case "anthropic":
-            return callAnthropic(p, prompt);
-        case "gemini":
-            return callGemini(p, prompt);
-        default:
-            return callCustom(p, prompt);
-    }
-}
-
-/* ---------------------- OPENAI ---------------------- */
-async function callOpenAI(p, prompt) {
-    const r = await fetch("https://api.openai.com/v1/responses", {
-        method: "POST",
-        headers: {
-            "Authorization": "Bearer " + p.apiKey,
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            model: p.model,
-            input: prompt,
-            max_output_tokens: 1024
-        })
-    });
-
-    if (!r.ok) {
-        const msg = await r.text();
-        throw new Error("OpenAI error: " + msg);
+    /* ---------------------- PROVIDER CARDS ---------------------- */
+    function renderProviders() {
+        const box = document.getElementById("providersList");
+        box.innerHTML = "";
+        providers.forEach(p => {
+            const div = document.createElement("div");
+            div.className = "bg-gray-900 p-4 rounded-lg border border-gray-700 flex justify-between items-center";
+            div.innerHTML = `
+                <div>
+                    <p class="font-semibold">${p.nickname || p.name}</p>
+                    <p class="text-xs text-gray-400 truncated" style="max-width:200px;">${p.type === 'custom' ? p.model : p.model}</p>
+                    <p class="text-xs text-gray-500 mt-1">$${getProviderTotal(p.id).toFixed(4)} total</p>
+                </div>
+                <button class="text-red-400 hover:text-red-300 text-lg" data-id="${p.id}">
+                    ✕
+                </button>
+            `;
+            div.querySelector("button").addEventListener("click", () => deleteProvider(p.id));
+            box.appendChild(div);
+        });
     }
 
-    const json = await r.json();
+    function getProviderTotal(id) {
+        return usage.filter(u => u.providerId === id).reduce((s, u) => s + u.cost, 0);
+    }
 
-    const text = json.output_text || "";
-    const inTok = json.usage?.input_tokens || estTokens(prompt);
-    const outTok = json.usage?.output_tokens || estTokens(text);
+    function deleteProvider(id) {
+        if (!confirm("Remove this provider?")) return;
+        providers = providers.filter(p => p.id !== id);
+        save("providers", providers);
+        renderApp();
+    }
 
-    return {
-        text,
-        inTok,
-        outTok,
-        cost: inTok * p.inCost + outTok * p.outCost
-    };
-}
+    /* ---------------------- PLAYGROUND PROVIDER DROPDOWN -------- */
+    function renderPlaygroundProviders() {
+        const sel = document.getElementById("playgroundProvider");
+        sel.innerHTML = `<option value="">-- Select --</option>`;
+        providers.forEach(p => {
+            // Truncate long URLs for display
+            const displayName = p.type === 'custom' ? 'Custom URL' : p.model;
+            sel.innerHTML += `
+                <option value="${p.id}">${p.nickname || p.name} — ${displayName}</option>
+            `;
+        });
+    }
 
-/* ---------------------- ANTHROPIC ---------------------- */
-async function callAnthropic(p, prompt) {
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-            "x-api-key": p.apiKey,
-            "Content-Type": "application/json",
-            "anthropic-version": "2023-01-01"
-        },
-        body: JSON.stringify({
-            model: p.model,
-            max_tokens: 1024,
-            messages: [
+    /* ------------------------ DASHBOARD STATS ------------------ */
+    function renderDashboardStats() {
+        const now = new Date();
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const weekStart = new Date(now.getTime() - 7 * 86400000);
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        function calc(start) {
+            return usage.filter(u => new Date(u.ts) >= start)
+                        .reduce((s, u) => s + u.cost, 0);
+        }
+        function count(start) {
+            return usage.filter(u => new Date(u.ts) >= start).length;
+        }
+
+        document.getElementById("todayCost").innerText = "$" + calc(todayStart).toFixed(4);
+        document.getElementById("weekCost").innerText = "$" + calc(weekStart).toFixed(4);
+        document.getElementById("monthCost").innerText = "$" + calc(monthStart).toFixed(4);
+        document.getElementById("allTimeCost").innerText = "$" + usage.reduce((s, u) => s + u.cost, 0).toFixed(4);
+
+        document.getElementById("todayRequests").innerText = count(todayStart) + " requests";
+        document.getElementById("weekRequests").innerText = count(weekStart) + " requests";
+        document.getElementById("monthRequests").innerText = count(monthStart) + " requests";
+        document.getElementById("allTimeRequests").innerText = usage.length + " requests";
+    }
+
+    /* -------------------------- MODALS -------------------------- */
+    function openAddProvider() {
+        document.getElementById("addProviderModal").classList.add("active");
+    }
+    function closeAddProvider() {
+        document.getElementById("addProviderModal").classList.remove("active");
+    }
+    function openSettings() {
+        document.getElementById("settingsModal").classList.add("active");
+    }
+    function closeSettings() {
+        document.getElementById("settingsModal").classList.remove("active");
+    }
+
+    /* ----------------------- SAVE PROVIDER ----------------------- */
+    function saveProvider() {
+        const type = document.getElementById("providerType").value;
+        let model = document.getElementById("providerModel").value.trim();
+        const key = document.getElementById("providerKey").value.trim();
+        const inCost = parseFloat(document.getElementById("providerInCost").value) || 0;
+        const outCost = parseFloat(document.getElementById("providerOutCost").value) || 0;
+        const nickname = document.getElementById("providerNickname").value.trim();
+
+        if (!model || !key) {
+            alert("Model/URL and API key required.");
+            return;
+        }
+
+        // Validation for Custom Type
+        if (type === 'custom' && !model.startsWith('http')) {
+            if(!confirm("For 'Custom' providers, the Model field should be a full URL (e.g. https://...). \n\nYou entered: " + model + "\n\nContinue anyway?")) {
+                return;
+            }
+        }
+
+        providers.push({
+            id: uid(),
+            type,
+            name: type,
+            model,
+            apiKey: key,
+            inCost: inCost / 1_000_000,
+            outCost: outCost / 1_000_000,
+            nickname
+        });
+        save("providers", providers);
+        fireEvent("api_key_added");
+        closeAddProvider();
+        renderApp();
+    }
+
+    /* -------------------------- PLAYGROUND ------------------------ */
+    function updatePlaygroundEst() {
+        const providerId = document.getElementById("playgroundProvider").value;
+        const msg = document.getElementById("playgroundInput").value;
+
+        if (!providerId) {
+            document.getElementById("playgroundEstimate").innerText = "$0.0000";
+            return;
+        }
+
+        const p = providers.find(x => x.id === providerId);
+        const tokens = estTokens(msg);
+        // Estimate: Input tokens + (Input tokens * 0.5 as rough output guess)
+        const est = (tokens * p.inCost) + (tokens * 0.5 * p.outCost);
+        document.getElementById("playgroundEstimate").innerText = "$" + est.toFixed(6);
+    }
+
+    async function runPlayground() {
+        const providerId = document.getElementById("playgroundProvider").value;
+        const msg = document.getElementById("playgroundInput").value.trim();
+
+        if (!providerId) return alert("Select a provider");
+        if (!msg) return alert("Enter a message");
+
+        const p = providers.find(x => x.id === providerId);
+        document.getElementById("playgroundSend").innerText = "Sending…";
+        document.getElementById("playgroundOutput").classList.add("hidden");
+        document.getElementById("playgroundStats").classList.add("hidden");
+
+        try {
+            const result = await callLLM(p, msg);
+
+            // Show output
+            document.getElementById("playgroundOutput").innerText = result.text;
+            document.getElementById("playgroundOutput").classList.remove("hidden");
+
+            // Stats
+            document.getElementById("statInputTokens").innerText = result.inTok;
+            document.getElementById("statOutputTokens").innerText = result.outTok;
+            document.getElementById("statCost").innerText = result.cost.toFixed(6);
+            document.getElementById("playgroundStats").classList.remove("hidden");
+
+            // Save usage
+            usage.push({
+                id: uid(),
+                providerId: p.id,
+                provider: p.type,
+                model: p.model,
+                ts: new Date().toISOString(),
+                inTok: result.inTok,
+                outTok: result.outTok,
+                cost: result.cost
+            });
+            save("usage", usage);
+            fireEvent("playground_used");
+            renderDashboardStats();
+
+        } catch (err) {
+            console.error(err);
+            alert("Error: " + err.message);
+        }
+        document.getElementById("playgroundSend").innerText = "Send →";
+    }
+
+    /* ---------------------- PROVIDER API HANDLERS ---------------------- */
+    async function callLLM(p, prompt) {
+        switch (p.type) {
+            case "openai":
+                return callOpenAI(p, prompt);
+            case "anthropic":
+                return callAnthropic(p, prompt);
+            case "gemini":
+                return callGemini(p, prompt);
+            default:
+                return callCustom(p, prompt);
+        }
+    }
+
+    /* ---------------------- OPENAI (FIXED) ---------------------- */
+    async function callOpenAI(p, prompt) {
+        // FIXED: Correct Chat Completion Endpoint
+        const r = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Authorization": "Bearer " + p.apiKey,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                model: p.model,
+                messages: [{ role: "user", content: prompt }],
+                max_tokens: 1000
+            })
+        });
+
+        if (!r.ok) {
+            const msg = await r.text();
+            throw new Error("OpenAI error (Check CORS/API Key): " + msg);
+        }
+
+        const json = await r.json();
+        const text = json.choices?.[0]?.message?.content || ""; 
+        const inTok = json.usage?.prompt_tokens || estTokens(prompt);
+        const outTok = json.usage?.completion_tokens || estTokens(text);
+
+        return {
+            text,
+            inTok,
+            outTok,
+            cost: inTok * p.inCost + outTok * p.outCost
+        };
+    }
+
+    /* ---------------------- ANTHROPIC ---------------------- */
+    async function callAnthropic(p, prompt) {
+        // NOTE: Anthropic strictly blocks Browser CORS. 
+        // This will likely fail without a proxy server.
+        const r = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: {
+                "x-api-key": p.apiKey,
+                "Content-Type": "application/json",
+                "anthropic-version": "2023-06-01",
+                "anthropic-dangerous-direct-browser-access": "true"
+            },
+            body: JSON.stringify({
+                model: p.model,
+                max_tokens: 1024,
+                messages: [
+                    { role: "user", content: prompt }
+                ]
+            })
+        });
+
+        if (!r.ok) {
+            const msg = await r.text();
+            throw new Error("Anthropic error: " + msg);
+        }
+
+        const json = await r.json();
+        const text = json.content?.[0]?.text || "";
+        const inTok = json.usage?.input_tokens || estTokens(prompt);
+        const outTok = json.usage?.output_tokens || estTokens(text);
+
+        return {
+            text,
+            inTok,
+            outTok,
+            cost: inTok * p.inCost + outTok * p.outCost
+        };
+    }
+
+    /* ---------------------- GEMINI ---------------------- */
+    async function callGemini(p, prompt) {
+        const body = {
+            contents: [
                 {
                     role: "user",
-                    content: [
-                        { type: "text", text: prompt }
-                    ]
+                    parts: [{ text: prompt }]
                 }
             ]
-        })
-    });
+        };
 
-    if (!r.ok) {
-        const msg = await r.text();
-        throw new Error("Anthropic error: " + msg);
-    }
-
-    const json = await r.json();
-
-    const text = json.content?.[0]?.text || "";
-    const inTok = json.usage?.input_tokens || estTokens(prompt);
-    const outTok = json.usage?.output_tokens || estTokens(text);
-
-    return {
-        text,
-        inTok,
-        outTok,
-        cost: inTok * p.inCost + outTok * p.outCost
-    };
-}
-    
-/* ---------------------- GEMINI (v1beta first) ---------------------- */
-async function callGemini(p, prompt) {
-    const body = {
-        contents: [
-            {
-                role: "user",
-                parts: [{ text: prompt }]
-            }
-        ]
-    };
-
-    // Try v1beta first (most models only work here)
-    const urlBeta = `https://generativelanguage.googleapis.com/v1beta/models/${p.model}:generateContent?key=${p.apiKey}`;
-
-    let r = await fetch(urlBeta, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-    });
-
-    // Try v1 fallback only if v1beta failed
-    if (!r.ok) {
-        const urlV1 = `https://generativelanguage.googleapis.com/v1/models/${p.model}:generateContent?key=${p.apiKey}`;
-
-        r = await fetch(urlV1, {
+        // Try v1beta first
+        const urlBeta = `https://generativelanguage.googleapis.com/v1beta/models/${p.model}:generateContent?key=${p.apiKey}`;
+        
+        let r = await fetch(urlBeta, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body)
         });
 
         if (!r.ok) {
-            const msg = await r.text();
-            throw new Error("Gemini error: " + msg);
+            // Fallback to v1
+            const urlV1 = `https://generativelanguage.googleapis.com/v1/models/${p.model}:generateContent?key=${p.apiKey}`;
+            r = await fetch(urlV1, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body)
+            });
+
+            if (!r.ok) {
+                const msg = await r.text();
+                throw new Error("Gemini error: " + msg);
+            }
         }
+
+        const json = await r.json();
+        const text = json.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        const inTok = estTokens(prompt);
+        const outTok = estTokens(text);
+
+        return {
+            text,
+            inTok,
+            outTok,
+            cost: inTok * p.inCost + outTok * p.outCost
+        };
     }
 
-    const json = await r.json();
+    /* ---------------------- CUSTOM PROVIDER ---------------------- */
+    async function callCustom(p, prompt) {
+        // For Custom, p.model IS the URL
+        const url = p.model;
+        
+        const payload = {
+            model: "custom", // Some endpoints need this
+            messages: [{ role: "user", content: prompt }],
+            stream: false
+        };
 
-    const text =
-        json.candidates?.[0]?.content?.parts?.[0]?.text ||
-        json.candidates?.[0]?.output ||
-        "";
+        const headers = {
+            "Content-Type": "application/json"
+        };
+        if (p.apiKey) {
+            headers["Authorization"] = "Bearer " + p.apiKey;
+        }
 
-    const inTok = estTokens(prompt);
-    const outTok = estTokens(text);
+        let r;
+        try {
+            r = await fetch(url, {
+                method: "POST",
+                headers,
+                body: JSON.stringify(payload)
+            });
+        } catch (err) {
+            throw new Error("Network Error. Check your URL, CORS settings, or if the server is running.");
+        }
 
-    return {
-        text,
-        inTok,
-        outTok,
-        cost: inTok * p.inCost + outTok * p.outCost
-    };
-}
+        if (!r.ok) {
+            const msg = await r.text();
+            throw new Error("Custom API error: " + msg);
+        }
 
-/* ---------------------- CUSTOM PROVIDER ---------------------- */
-async function callCustom(p, prompt) {
-    const payload = {
-        // Most custom endpoints accept "prompt"
-        prompt: prompt,
-        // Some accept "input"
-        input: prompt,
-        // Some accept "messages" (OpenAI style)
-        messages: [{ role: "user", content: prompt }]
-    };
+        const json = await r.json();
 
-    const headers = {
-        "Content-Type": "application/json"
-    };
+        // Heuristic to find the text in various custom formats
+        const text =
+            json.choices?.[0]?.message?.content ||
+            json.response || 
+            json.generated_text ||
+            JSON.stringify(json);
 
-    // Only set Authorization if user provided a key
-    if (p.apiKey) {
-        headers["Authorization"] = "Bearer " + p.apiKey;
-        headers["x-api-key"] = p.apiKey; // Many endpoints use this
+        const inTok = json.usage?.prompt_tokens || estTokens(prompt);
+        const outTok = json.usage?.completion_tokens || estTokens(text);
+
+        return {
+            text,
+            inTok,
+            outTok,
+            cost: inTok * p.inCost + outTok * p.outCost
+        };
     }
 
-    let r;
-    try {
-        r = await fetch(p.model, {
-            method: "POST",
-            headers,
-            body: JSON.stringify(payload)
-        });
-    } catch (err) {
-        throw new Error(
-            "Custom provider network error.\n" +
-            "Likely causes:\n" +
-            "- CORS blocked (server must allow browser requests)\n" +
-            "- Wrong URL (must be HTTPS)\n" +
-            "- Wrong headers\n\n" +
-            "Full error: " + err.message
-        );
+    /* -------------------------- CLEAR DATA ------------------------ */
+    function clearAllData() {
+        if (!confirm("Clear ALL data?")) return;
+        providers = [];
+        usage = [];
+        save("providers", providers);
+        save("usage", usage);
+        renderApp();
     }
 
-    if (!r.ok) {
-        const msg = await r.text();
-        throw new Error("Custom provider error: " + msg);
+    /* -------------------------- EXPORT DATA ------------------------ */
+    function exportData() {
+        const data = {
+            providers,
+            usage,
+            exportedAt: new Date().toISOString()
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "ai-cost-tracker-export.json";
+        a.click();
+        URL.revokeObjectURL(url);
     }
 
-    const json = await r.json();
-
-    // Try to extract any reasonable text
-    const text =
-        json.output ||
-        json.text ||
-        json.response ||
-        json.choices?.[0]?.message?.content ||
-        json.choices?.[0]?.text ||
-        json.content?.[0]?.text ||
-        JSON.stringify(json);
-
-    const inTok = json.usage?.input_tokens || estTokens(prompt);
-    const outTok = json.usage?.output_tokens || estTokens(text);
-
-    return {
-        text,
-        inTok,
-        outTok,
-        cost: inTok * p.inCost + outTok * p.outCost
-    };
-}
-/* -------------------------- CLEAR DATA ------------------------ */
-function clearAllData() {
-    if (!confirm("Clear ALL data?")) return;
-
-    providers = [];
-    usage = [];
-
-    save("providers", providers);
-    save("usage", usage);
-
-    renderApp();
-}
-
-/* -------------------------- EXPORT DATA ------------------------ */
-function exportData() {
-    const data = {
-        providers,
-        usage,
-        exportedAt: new Date().toISOString()
-    };
-
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "ai-cost-tracker-export.json";
-    a.click();
-
-    URL.revokeObjectURL(url);
-}
-
-/* ------------------ ANONYMOUS ANALYTICS (PLAUSIBLE) ------------------ */
-function wireAnalyticsScript() {
-    const s = document.createElement("script");
-    s.defer = true;
-    s.setAttribute("data-domain", "amitstar69.github.io");
-    s.src = "https://plausible.io/js/script.js";
-    document.head.appendChild(s);
-}
-</script>
-
+    /* ------------------ ANONYMOUS ANALYTICS ------------------ */
+    function wireAnalyticsScript() {
+        const s = document.createElement("script");
+        s.defer = true;
+        s.setAttribute("data-domain", "amitstar69.github.io");
+        s.src = "https://plausible.io/js/script.js";
+        document.head.appendChild(s);
+    }
+    </script>
+</body>
+</html>
