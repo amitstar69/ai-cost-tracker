@@ -3,9 +3,17 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI Cost Tracker v6.0 (Streaming & Health Check)</title>
+    <title>AI Cost Tracker v6.2 (Frontier Models & UX)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XXXXXXXXXX');
+    </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
@@ -39,7 +47,7 @@
             <div class="flex items-center gap-3">
                 <div class="text-2xl">📉</div>
                 <div>
-                    <h1 class="text-xl font-bold">AI Cost Tracker <span class="text-xs bg-green-900 text-green-200 px-2 py-0.5 rounded">v6.0</span></h1>
+                    <h1 class="text-xl font-bold">AI Cost Tracker <span class="text-xs bg-green-900 text-green-200 px-2 py-0.5 rounded">v6.2</span></h1>
                 </div>
             </div>
             <div class="flex gap-2">
@@ -137,9 +145,9 @@
             
             <label class="text-xs text-gray-400 uppercase font-bold block mb-1.5">Provider</label>
             <select id="pType" onchange="updateModalUI()" class="w-full bg-gray-950 border border-gray-700 rounded-lg p-3 mb-4 text-sm focus:border-purple-500 outline-none text-white">
-                <option value="openrouter">OpenRouter (Recommended)</option>
+                <option value="openai">OpenAI (GPT)</option>
                 <option value="gemini">Google Gemini</option>
-                <option value="openai">OpenAI</option>
+                <option value="anthropic">Anthropic (Claude)</option> <option value="grok">xAI (Grok)</option> <option value="kimi">Moonshot AI (Kimi)</option> <option value="openrouter">OpenRouter (Recommended)</option>
                 <option value="ollama">Ollama (Local)</option>
                 <option value="custom">Custom / Other</option>
             </select>
@@ -147,7 +155,7 @@
             <div id="smartModelContainer">
                 <label class="text-xs text-gray-400 uppercase font-bold block mb-1.5">Model</label>
                 <select id="pPreset" class="w-full bg-gray-950 border border-gray-700 rounded-lg p-3 mb-4 text-sm focus:border-purple-500 outline-none text-white"></select>
-                <p class="text-xs text-gray-500 mb-4 -mt-2">Prices are auto-calculated.</p>
+                <p class="text-xs text-gray-500 mb-4 -mt-2">Prices are auto-calculated for the selected model.</p>
             </div>
 
             <div id="customFields" class="hidden">
@@ -170,7 +178,7 @@
             </div>
 
             <div id="apiKeyContainer">
-                <label class="text-xs text-gray-400 uppercase font-bold block mb-1.5">API Key</label>
+                <label id="pKeyLabel" class="text-xs text-gray-400 uppercase font-bold block mb-1.5">API Key</label>
                 <input id="pKey" type="password" class="w-full bg-gray-950 border border-gray-700 rounded-lg p-3 mb-4 text-sm focus:border-purple-500 outline-none" placeholder="sk-...">
             </div>
             
@@ -221,22 +229,36 @@
 
 
     <script>
-        // Data and Presets (Same as before, good to keep external pricing here)
+        // V6.2 - EXPANDED MODEL PRESETS & DYNAMIC URLS
         const PRESETS = {
+            'openai': [
+                { id: 'gpt-4o', name: 'GPT-4o', in: 5.00, out: 15.00, emoji: '🧠' },
+                { id: 'gpt-4o-mini', name: 'GPT-4o Mini', in: 0.15, out: 0.60, emoji: '⚙️' },
+                { id: 'gpt-4-turbo-2024-04-09', name: 'GPT-4 Turbo', in: 10.00, out: 30.00, emoji: '🚀' },
+                { id: 'gpt-3.5-turbo-0125', name: 'GPT-3.5 Turbo', in: 0.50, out: 1.50, emoji: '💨' }
+            ],
+            'gemini': [
+                { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', in: 0.35, out: 0.45, emoji: '⚡' },
+                { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', in: 3.50, out: 10.50, emoji: '✨' },
+                { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash-Lite', in: 0.15, out: 0.25, emoji: '📉' }
+            ],
+            'anthropic': [ // V6.2 ADDITION
+                { id: 'claude-4-1-opus', name: 'Claude 4.1 Opus', in: 15.00, out: 75.00, emoji: '🌟' },
+                { id: 'claude-4-1-sonnet', name: 'Claude 4.1 Sonnet', in: 5.00, out: 25.00, emoji: '✨' },
+                { id: 'claude-3-5-haiku', name: 'Claude 3.5 Haiku', in: 0.80, out: 4.00, emoji: '🍃' }
+            ],
+            'grok': [ // V6.2 ADDITION
+                { id: 'grok-4', name: 'Grok-4 (Frontier)', in: 3.00, out: 15.00, emoji: '🚀' },
+                { id: 'grok-4-fast-reasoning', name: 'Grok-4 Fast', in: 0.20, out: 0.50, emoji: '⚡' }
+            ],
+            'kimi': [ // V6.2 ADDITION
+                { id: 'kimi-k2-0905-preview', name: 'Kimi K2 Instruct', in: 0.60, out: 2.50, emoji: '🔥' },
+                { id: 'kimi-k2-thinking', name: 'Kimi K2 Thinking', in: 0.60, out: 2.50, emoji: '💭' }
+            ],
             'openrouter': [
                 { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', in: 3.00, out: 15.00, emoji: '🔥' },
                 { id: 'openai/gpt-4o', name: 'GPT-4o', in: 5.00, out: 15.00, emoji: '🧠' },
-                { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini', in: 0.15, out: 0.60, emoji: '⚙️' },
-                { id: 'google/gemini-flash-1.5', name: 'Gemini Flash 1.5', in: 0.075, out: 0.30, emoji: '⚡' },
                 { id: 'meta-llama/llama-3.1-70b-instruct', name: 'Llama 3.1 70B', in: 0.4, out: 0.4, emoji: '🦙' }
-            ],
-            'openai': [
-                { id: 'gpt-4o', name: 'GPT-4o', in: 5.00, out: 15.00, emoji: '🧠' },
-                { id: 'gpt-4o-mini', name: 'GPT-4o Mini', in: 0.15, out: 0.60, emoji: '⚙️' }
-            ],
-            'gemini': [
-                { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', in: 0.075, out: 0.30, emoji: '⚡' },
-                { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', in: 3.50, out: 10.50, emoji: '🚀' }
             ],
             'ollama': [
                 { id: 'llama3', name: 'Llama 3 (Local)', in: 0, out: 0, emoji: '🏠' },
@@ -249,16 +271,33 @@
         const decoder = new TextDecoder("utf-8");
         const TOKEN_EST_FACTOR = 4; // Approx chars per token
 
+        /* ---------------- V6.1 ANALYTICS FUNCTION ---------------- */
+
+        function trackAnalytics(p, inTok, outTok, cost, isSuccess, latencyMs, errorCode) {
+            if (typeof gtag !== 'function') return;
+
+            gtag('event', 'ai_request_completed', {
+                provider_name: p.name,
+                model_id: p.model,
+                is_success: isSuccess,
+                input_tokens: inTok,
+                output_tokens: outTok,
+                cost_usd: cost,
+                latency_ms: latencyMs,
+                error_code: errorCode || 'N/A',
+                currency: 'USD',
+                value: cost 
+            });
+        }
+        
         /* ---------------- INITIALIZATION & STATE ---------------- */
         document.addEventListener('DOMContentLoaded', () => {
             renderUI();
             updateModalUI(); 
             
-            // Listeners for real-time estimation
             document.getElementById('promptInput').addEventListener('input', updateEstimate);
             document.getElementById('activeProvider').addEventListener('change', updateEstimate);
 
-            // Listener for keyboard shortcut (Cmd/Ctrl + Enter)
             document.getElementById('promptInput').addEventListener('keydown', (e) => {
                 if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
                     e.preventDefault();
@@ -307,7 +346,7 @@
                     const div = document.createElement('div');
                     div.className = 'bg-gray-900 p-4 rounded-lg border border-gray-800 flex justify-between items-center group hover:border-gray-700 transition';
                     const totalCost = usage.filter(u => u.pid === p.id).reduce((a,b) => a + b.cost, 0);
-                    p.totalCost = totalCost; // Update total cost on provider object
+                    p.totalCost = totalCost;
                     
                     div.innerHTML = `
                         <div class="flex items-center gap-3">
@@ -335,7 +374,7 @@
                 select.value = savedVal;
             }
 
-            // Render History Log (New Feature)
+            // Render History Log (V6.0 Feature)
             renderHistoryLog();
         }
 
@@ -369,6 +408,26 @@
             }).join('');
         }
 
+        function updateEstimate() {
+            const pid = document.getElementById('activeProvider').value;
+            const prompt = document.getElementById('promptInput').value;
+            const estCostSpan = document.getElementById('estCost');
+
+            if (!pid || !prompt) {
+                estCostSpan.innerText = '$0.0000 est.';
+                return;
+            }
+
+            const p = providers.find(x => x.id === pid);
+            if (!p) return;
+
+            // Simple char count for estimation
+            const inTokEst = Math.ceil(prompt.length / TOKEN_EST_FACTOR);
+            const estCost = (inTokEst / 1e6 * p.inPrice); 
+            estCostSpan.innerText = `$${estCost.toFixed(6)} est.`;
+        }
+
+
         /* ---------------- MODAL & LIFECYCLE ---------------- */
 
         function updateModalUI() {
@@ -377,23 +436,57 @@
             const customContainer = document.getElementById('customFields');
             const keyContainer = document.getElementById('apiKeyContainer');
             const presetSelect = document.getElementById('pPreset');
+            const pKeyInput = document.getElementById('pKey');
+            const pKeyLabel = document.getElementById('pKeyLabel');
+            const pUrlInput = document.getElementById('pUrl');
             
-            // 1. Handle Fields Visibility
             const isCustom = type === 'custom';
             const isOllama = type === 'ollama';
 
             smartContainer.classList.toggle('hidden', isCustom);
             customContainer.classList.toggle('hidden', !isCustom);
-            keyContainer.classList.toggle('hidden', isOllama && !isCustom); // Ollama usually no key
+            keyContainer.classList.toggle('hidden', isOllama && !isCustom);
             
-            // 2. Populate Dropdown from Presets
+            let defaultUrl = '';
+            let keyPlaceholder = 'sk- (required)';
+
+            // V6.2: Set URL and Key placeholder based on type
+            if (type === 'openai') {
+                defaultUrl = 'https://api.openai.com/v1';
+                keyPlaceholder = 'OpenAI Key (e.g., sk-...)';
+            } else if (type === 'gemini') {
+                defaultUrl = 'https://generativelanguage.googleapis.com/v1beta/models';
+                keyPlaceholder = 'Gemini Key (e.g., AIza...)';
+            } else if (type === 'anthropic') { // V6.2
+                defaultUrl = 'https://api.anthropic.com/v1';
+                keyPlaceholder = 'Anthropic Key (e.g., sk-ant-...)';
+            } else if (type === 'grok') { // V6.2
+                defaultUrl = 'https://api.x.ai/v1';
+                keyPlaceholder = 'Grok Key (e.g., grok-...)';
+            } else if (type === 'kimi') { // V6.2
+                defaultUrl = 'https://api.moonshot.ai/v1';
+                keyPlaceholder = 'Kimi Key (e.g., sk-moon-...)';
+            } else if (type === 'openrouter') {
+                defaultUrl = 'https://openrouter.ai/api/v1';
+                keyPlaceholder = 'OpenRouter Key (e.g., sk-or-...)';
+            } else if (type === 'ollama') {
+                defaultUrl = 'http://localhost:11434/v1';
+                keyPlaceholder = 'Not Required (Local)';
+            }
+
+            pKeyInput.placeholder = keyPlaceholder;
+            pKeyLabel.innerText = `${type.toUpperCase()} API KEY`;
+            pUrlInput.value = defaultUrl;
+
+
             if (!isCustom) {
                 presetSelect.innerHTML = '';
                 const list = PRESETS[type] || [];
                 list.forEach(m => {
                     const opt = document.createElement('option');
-                    opt.value = JSON.stringify(m); 
-                    opt.innerText = `${m.emoji || ''} ${m.name}`;
+                    // Store the price details in the value for easy retrieval
+                    opt.value = JSON.stringify({ name: m.name, model: m.id, inPrice: m.in, outPrice: m.out }); 
+                    opt.innerText = `${m.emoji || ''} ${m.name} ($${m.in} / $${m.out} per 1M)`;
                     presetSelect.appendChild(opt);
                 });
             }
@@ -425,16 +518,12 @@
                     return;
                 }
             } else {
-                const presetData = JSON.parse(document.getElementById('pPreset').value);
-                modelId = presetData.id;
-                name = presetData.name;
-                inPrice = presetData.in;
-                outPrice = presetData.out;
-                
-                if (type === 'ollama') baseUrl = 'http://localhost:11434/v1';
-                else if (type === 'openrouter') baseUrl = 'https://openrouter.ai/api/v1';
-                else if (type === 'openai') baseUrl = 'https://api.openai.com/v1';
-                
+                const presetValues = JSON.parse(document.getElementById('pPreset').value);
+                modelId = presetValues.model;
+                name = presetValues.name;
+                inPrice = presetValues.inPrice;
+                outPrice = presetValues.outPrice;
+                baseUrl = document.getElementById('pUrl').value; // Get the auto-populated URL
                 apiKey = document.getElementById('pKey').value;
             }
 
@@ -448,7 +537,7 @@
             
             const newProvider = { id: Date.now().toString(), type, name, model: modelId, apiKey, baseUrl, inPrice, outPrice, totalCost: 0 };
             
-            // 2. Run Health Check
+            // 2. Run Health Check (V6.0 Feature)
             const healthCheck = await pingProvider(newProvider);
 
             if (healthCheck === true) {
@@ -460,7 +549,6 @@
                 statusDiv.classList.replace('text-red-400', 'text-green-400');
                 statusDiv.classList.replace('bg-red-900/20', 'bg-green-900/20');
 
-                // Wait a moment for user to see success, then close
                 setTimeout(() => {
                     closeAddModal();
                     document.getElementById('pKey').value = '';
@@ -490,10 +578,9 @@
         async function pingProvider(p) {
             try {
                 if (p.type === 'gemini') {
-                    // Gemini ping: minimal request
                     await callGemini(p, 'ping', true); 
                 } else {
-                    // Standard ping: minimal request
+                    // Kimi, Anthropic, Grok, OpenAI, OpenRouter, Ollama, Custom all use standard
                     await callStandard(p, 'ping', true);
                 }
                 return true;
@@ -507,16 +594,16 @@
             const status = statusMatch ? parseInt(statusMatch[1]) : null;
             
             if (status === 401 || status === 403 || errorText.includes('401') || errorText.includes('403')) {
-                return `**Connection Failed (401/403)**: Invalid API Key or Permissions.\n\n**Action:** Check your key for typos. Generate a new key if necessary.`;
+                return `**Connection Failed (401/403)**: Invalid API Key or Permissions.\n\n**Action:** Check your API key. Generate a new key if necessary.`;
             }
             if (status === 404 || errorText.includes('404')) {
-                return `**Connection Failed (404)**: Invalid Model ID or Base URL.\n\n**Action:** Verify the Base URL (e.g., ends in /v1) and that the Model ID exists for this provider.`;
+                return `**Connection Failed (404)**: Invalid Model ID or Base URL.\n\n**Action:** Verify the Base URL (e.g., must end in /v1) and the Model ID are correct.`;
             }
             if (type === 'ollama' && errorText.includes('Failed to fetch')) {
-                 return `**Connection Failed (Network)**: Could not reach Ollama server.\n\n**Action:** Ensure Ollama is running locally and that you launched it with \`OLLAMA_ORIGINS='*'\`.`;
+                 return `**Connection Failed (Network)**: Could not reach Ollama server.\n\n**Action:** Ensure Ollama is running locally and that you launched it with \`OLLAMA_ORIGINS='*' \`.`;
             }
             if (errorText.includes('Failed to fetch') || errorText.includes('Timeout')) {
-                return `**Connection Failed (Network)**: Request timed out or was blocked by CORS.\n\n**Action:** Check your network, or try using OpenRouter (better browser support).`;
+                return `**Connection Failed (Network)**: Request timed out or was blocked by CORS.\n\n**Action:** Check your network/browser security settings, or try using OpenRouter.`;
             }
 
             return `**Connection Failed (Unknown)**: ${errorText.substring(0, 100)}...\n\n**Action:** Check the provider's status page or review your setup.`;
@@ -541,9 +628,7 @@
             outContent.innerHTML = '<span class="animate-pulse text-gray-500">Connecting...</span>';
             runStats.innerText = 'Calculating...';
             
-            // Auto-scroll to the output area
             outArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
 
             let fullText = "";
             let inTok = 0;
@@ -552,21 +637,21 @@
 
             try {
                 if (p.type === 'gemini') {
-                    // Use standard call for Gemini, as streaming logic needs complex handling
+                    // Gemini does not stream via standard API
                     const result = await callGemini(p, prompt, false);
                     fullText = result.text;
                     inTok = result.inTok;
                     outTok = result.outTok;
 
-                    // Manual streaming simulation (since Gemini doesn't always provide usage in stream)
+                    // Manual streaming simulation for UX
                     outContent.innerHTML = '';
                     await streamTextToUI(fullText, outContent);
 
                 } else {
-                    // OpenRouter, OpenAI, Ollama, Custom: use streaming compatible call
+                    // Standard APIs (V6.0 Streaming)
+                    // This covers OpenAI, OpenRouter, Ollama, Kimi, Anthropic, Grok, Custom
                     const streamResult = await callStandard(p, prompt, false);
                     
-                    // Stream response to UI and calculate tokens/cost as it finishes
                     outContent.innerHTML = '';
                     const { text, usageMetrics } = await streamStandardResponse(streamResult, outContent);
                     fullText = text;
@@ -578,6 +663,10 @@
                 cost = (inTok / 1e6 * p.inPrice) + (outTok / 1e6 * p.outPrice);
                 
                 runStats.innerText = `In: ${inTok} • Out: ${outTok} • Cost: $${cost.toFixed(6)}`;
+
+                // V6.1 ANALYTICS SUCCESS TRACKING
+                const latency = performance.now() - startTime;
+                trackAnalytics(p, inTok, outTok, cost, true, latency); 
                 
                 // Update Storage
                 usage.push({ 
@@ -587,171 +676,217 @@
                 saveState();
 
             } catch (e) {
-                outContent.innerHTML = `<div class="bg-red-900/20 border border-red-800 text-red-300 p-4 rounded-lg text-sm">
-                    <strong>Request Failed:</strong> ${parseApiError(e.message, p.type)}
-                </div>`;
-                runStats.innerText = `Error: ${(performance.now() - startTime).toFixed(0)}ms`;
+                outContent.innerHTML = `<div class="bg-red-900/20 border border-red-800 text-red-300 p-4 rounded-lg text-sm">${parseApiError(e.message, p.type)}</div>`;
+                runStats.innerText = 'Error';
+                
+                // V6.1 ANALYTICS FAILURE TRACKING
+                const latency = performance.now() - startTime;
+                const errorMessage = parseApiError(e.message, p.type);
+                trackAnalytics(p, 0, 0, 0, false, latency, errorMessage.substring(0, 50));
 
             } finally {
                 btn.innerHTML = "Run Request";
                 btn.disabled = false;
-            }
-        }
-
-        // Helper to simulate streaming for non-streamed responses (e.g., Gemini)
-        async function streamTextToUI(text, targetElement) {
-            let buffer = '';
-            for (let i = 0; i < text.length; i++) {
-                buffer += text[i];
-                if (i % 50 === 0 || i === text.length - 1) { // Update every 50 chars
-                    targetElement.innerHTML = marked.parse(buffer + '<span class="stream-cursor"></span>');
-                    await new Promise(resolve => setTimeout(resolve, 1)); // Throttle
+                // Force markdown rendering for the final content
+                if (fullText) {
+                    outContent.innerHTML = marked.parse(fullText);
                 }
             }
-            targetElement.innerHTML = marked.parse(buffer); // Final render
         }
-
-
-        // STANDARD API CALL (OpenAI, OpenRouter, Ollama, Custom)
+        
         async function callStandard(p, prompt, isPing) {
-            const url = p.baseUrl.endsWith('/') ? `${p.baseUrl}chat/completions` : `${p.baseUrl}/chat/completions`;
-            
-            const headers = { 
-                "Content-Type": "application/json",
-            };
-            
-            // Only add Authorization header if there is a key
-            if (p.apiKey) {
-                 headers["Authorization"] = `Bearer ${p.apiKey}`;
-            }
-
-            // OpenRouter specific headers
-            if (p.type === 'openrouter') {
-                headers["HTTP-Referer"] = window.location.href;
-                headers["X-Title"] = "AI Cost Tracker";
-            }
-
             const body = {
                 model: p.model,
                 messages: [{ role: "user", content: prompt }],
-                stream: !isPing, // Enable streaming unless it's a ping
-                max_tokens: isPing ? 1 : undefined, // Limit output for ping
-                temperature: isPing ? 0.1 : undefined
+                stream: !isPing,
+                max_tokens: isPing ? 1 : null // Max 1 token for ping
             };
 
-            const r = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
-            if (!r.ok) throw new Error(`Status: ${r.status}, Body: ${await r.text()}`);
-            
-            if (isPing) {
-                // For health check, just consume response body
-                await r.json(); 
-                return true;
+            const headers = {
+                'Content-Type': 'application/json',
+                // OpenAI-compatible APIs use the Authorization header
+                'Authorization': `Bearer ${p.apiKey}`
+            };
+
+            // Custom Headers for specific providers using the OpenAI-compatible format
+            if (p.type === 'anthropic') {
+                headers['x-api-key'] = p.apiKey;
+                headers['anthropic-version'] = '2023-06-01';
+                delete headers['Authorization']; // Use their specific header
+                body.system = "You are a helpful assistant."; // Anthropic requires a system message
             }
+            if (p.type === 'grok') {
+                // Grok uses the standard bearer token
+            }
+            if (p.type === 'openrouter') {
+                headers['HTTP-Referer'] = 'https://amitstar69.github.io/ai-cost-tracker/'; // Recommended for OpenRouter
+                headers['X-Title'] = 'AI Cost Tracker';
+            }
+            if (p.type === 'ollama') {
+                // Ollama API is different, but we use the /v1 path for standard compatibility
+                delete body.stream;
+            }
+
+            const url = p.baseUrl.replace(/\/v1$/, '') + '/v1/chat/completions';
             
-            // Return Response object for streaming
-            return r;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(body),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`API Request Failed. Status: ${response.status}. ${errorText}`);
+            }
+
+            if (isPing) {
+                // For ping, just check for success
+                return true; 
+            }
+
+            return response;
         }
 
-        // STANDARD API Streaming Response Handler
-        async function streamStandardResponse(response, targetElement) {
+        async function streamStandardResponse(response, outContent) {
             const reader = response.body.getReader();
-            let fullText = "";
-            let rawData = "";
+            let fullText = '';
             let usageMetrics = null;
+            
+            const cursor = document.createElement('span');
+            cursor.className = 'stream-cursor';
+            outContent.appendChild(cursor);
 
             while (true) {
-                const { done, value } = await reader.read();
+                const { value, done } = await reader.read();
                 if (done) break;
 
                 const chunk = decoder.decode(value);
-                rawData += chunk;
+                
+                for (const line of chunk.split('\n')) {
+                    if (line.startsWith('data: ')) {
+                        const data = line.substring(6).trim();
+                        if (data === '[DONE]') {
+                            break;
+                        }
 
-                // Process stream chunks
-                const lines = chunk.split('\n').filter(line => line.trim() !== '');
-                for (const line of lines) {
-                    if (line.startsWith('data:')) {
-                        let data = line.substring(5).trim();
-                        if (data === '[DONE]') continue;
-                        
                         try {
                             const json = JSON.parse(data);
-                            const content = json.choices?.[0]?.delta?.content || json.choices?.[0]?.text || '';
-                            const finalUsage = json.usage;
-
-                            if (content) {
-                                fullText += content;
-                                targetElement.innerHTML = marked.parse(fullText + '<span class="stream-cursor"></span>');
+                            const delta = json.choices?.[0]?.delta?.content || "";
+                            
+                            // Check for final usage metrics (for OpenRouter, Grok, etc.)
+                            if (json.usage) {
+                                usageMetrics = json.usage;
                             }
-                            if (finalUsage) {
-                                usageMetrics = finalUsage;
+                            
+                            if (delta) {
+                                fullText += delta;
+                                // Simple update to the UI for streaming effect
+                                outContent.innerHTML = marked.parse(fullText);
+                                outContent.appendChild(cursor); // Re-append cursor
+                                
+                                // Scroll to bottom on new chunk
+                                outContent.parentElement.scrollTop = outContent.parentElement.scrollHeight; 
                             }
                         } catch (e) {
-                            // Ignore parsing errors for incomplete stream chunks
+                            // Ignore parsing errors for non-JSON lines
                         }
                     }
                 }
             }
-            
-            targetElement.innerHTML = marked.parse(fullText); // Final render
+            cursor.remove(); // Remove cursor when done
             return { text: fullText, usageMetrics };
         }
 
-
-        // GEMINI API CALL
         async function callGemini(p, prompt, isPing) {
-            const modelPath = p.model.includes('/') ? p.model.replace(/\//g, '-') : p.model;
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelPath}:generateContent?key=${p.apiKey}`;
-            
-            const body = { 
-                contents: [{ parts: [{ text: prompt }] }],
-                config: {
-                    maxOutputTokens: isPing ? 1 : undefined,
-                }
+            // Note: Gemini uses a slightly different non-streaming API
+            const body = {
+                contents: [{ role: "user", parts: [{ text: prompt }] }],
             };
-            
-            const r = await fetch(url, {
+
+            const url = `${p.baseUrl}/${p.model}:generateContent?key=${p.apiKey}`;
+
+            const response = await fetch(url, {
                 method: 'POST',
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(body)
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
             });
-            
-            if (!r.ok) throw new Error(`Status: ${r.status}, Body: ${await r.text()}`);
-            
-            const json = await r.json();
-            
-            // Check for blocked/error response
-            if (!json.candidates || json.candidates.length === 0) {
-                 throw new Error("API returned no candidates. Content may be blocked or key invalid.");
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Gemini Request Failed. Status: ${response.status}. ${errorText}`);
             }
 
-            if (isPing) return true;
-
-            const text = json.candidates[0].content.parts[0].text;
+            const json = await response.json();
             
-            // Gemini doesn't reliably return usage in the main response, so we estimate
-            const inTok = Math.ceil(prompt.length / TOKEN_EST_FACTOR);
-            const outTok = Math.ceil(text.length / TOKEN_EST_FACTOR);
+            if (isPing) {
+                return true;
+            }
 
+            const text = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const inTok = json.usageMetadata?.promptTokenCount || 0;
+            const outTok = json.usageMetadata?.candidatesTokenCount || 0;
+            
             return { text, inTok, outTok };
         }
-
-
-        // Standard Helpers
-        function openAddModal() { document.getElementById('modalAdd').classList.add('active'); updateModalUI(); }
-        function closeAddModal() { document.getElementById('modalAdd').classList.remove('active'); document.getElementById('modalConnectBtn').innerText = "Connect"; document.getElementById('modalConnectBtn').disabled = false; document.getElementById('healthCheckStatus').classList.add('hidden'); }
-        function openSettings() { document.getElementById('modalSettings').classList.add('active'); }
-        function closeSettings() { document.getElementById('modalSettings').classList.remove('active'); }
-        function openAboutModal() { document.getElementById('modalAbout').classList.add('active'); }
-        function closeAboutModal() { document.getElementById('modalAbout').classList.remove('active'); }
-        function deleteProvider(id) { if(confirm('Remove provider? This does not clear history, only the key.')) { providers = providers.filter(p=>p.id!==id); saveState(); }}
-        function clearData() { if(confirm('⚠️ Delete ALL history AND API keys?')) { providers=[]; usage=[]; saveState(); closeSettings(); }}
-        function exportData() {
-            const blob = new Blob([JSON.stringify({providers, usage}, null, 2)], {type : 'application/json'});
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'ai_tracker_backup.json';
-            a.click();
+        
+        // --- MODAL CONTROLS ---
+        function openAddModal() {
+            document.getElementById('modalAdd').classList.add('active');
+            updateModalUI();
         }
+        function closeAddModal() {
+            document.getElementById('modalAdd').classList.remove('active');
+        }
+        function openSettings() {
+            document.getElementById('modalSettings').classList.add('active');
+        }
+        function closeSettings() {
+            document.getElementById('modalSettings').classList.remove('active');
+        }
+        function openAboutModal() {
+            document.getElementById('modalAbout').classList.add('active');
+        }
+        function closeAboutModal() {
+            document.getElementById('modalAbout').classList.remove('active');
+        }
+        function deleteProvider(id) {
+            if (confirm('Are you sure you want to delete this provider? This will NOT delete its usage history.')) {
+                providers = providers.filter(p => p.id !== id);
+                saveState();
+                const select = document.getElementById('activeProvider');
+                if (select.value === id) {
+                    select.value = '';
+                }
+            }
+        }
+        function clearData() {
+            if(confirm('WARNING: This will delete ALL API keys, models, and usage history from your browser.')) {
+                localStorage.removeItem('act_providers');
+                localStorage.removeItem('act_usage');
+                providers = [];
+                usage = [];
+                saveState();
+                closeSettings();
+            }
+        }
+        function exportData() {
+            const data = {
+                providers: providers,
+                usage: usage
+            };
+            const jsonStr = JSON.stringify(data, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'ai-cost-tracker-export.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
     </script>
 </body>
 </html>
