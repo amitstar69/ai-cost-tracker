@@ -87,14 +87,14 @@
             <div class="lg:col-span-1">
                 
                 <div class="bg-gray-800 text-white p-6 rounded-xl shadow-lg mb-6 border-b border-gray-700">
-                    <h2 class="text-xl font-bold mb-4 text-gray-200">Financial Summary (All APIs)</h2>
+                    <h2 class="text-xl font-bold mb-4 text-gray-200">Financial Summary</h2>
                     <div class="space-y-3 text-sm font-medium">
                         <div class="flex justify-between items-center p-2 bg-gray-700 rounded-lg">
                             <span class="text-gray-300">Total API Calls:</span>
                             <span id="total-calls" class="font-mono text-lg font-bold">0</span>
                         </div>
                         <div class="flex justify-between items-center p-3 bg-red-800 rounded-lg shadow-md">
-                            <span class="font-extrabold text-lg">Lifetime Total Cost:</span>
+                            <span class="font-extrabold text-lg">Lifetime Cost:</span>
                             <span id="total-cost" class="font-mono text-2xl font-extrabold">$0.00</span>
                         </div>
                     </div>
@@ -104,7 +104,7 @@
                 </div>
 
                 <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
-                    <h2 class="text-xl font-bold mb-4 text-gray-700 border-b pb-2">Provider Cost Dashboard (Segregated)</h2>
+                    <h2 class="text-xl font-bold mb-4 text-gray-700 border-b pb-2">Provider Cost Dashboard</h2>
                     <div id="provider-dashboard" class="space-y-4">
                         <p class="text-center text-gray-500 italic">No usage logged yet.</p>
                     </div>
@@ -240,16 +240,15 @@
                  return;
             }
 
-            // Aggregate Usage: Map model name to its total stats
-            const aggregatedStats = {};
-            
-            // Initialize aggregation map with all possible models (ensures we get providerName correctly)
-             for (const providerKey in PRESETS) {
+            // Get a list of all unique providers used
+            const usedProviders = {};
+            for (const providerKey in PRESETS) {
                 for (const modelKey in PRESETS[providerKey]) {
                     const modelData = PRESETS[providerKey][modelKey];
-                    // Key by model name for simple aggregation
-                    aggregatedStats[modelKey] = {
-                        providerName: modelData.providerName,
+                    // Use a unique key for grouping (ProviderName + ModelName)
+                    const key = `${modelData.providerName}_${modelKey}`;
+                    usedProviders[key] = {
+                        provider: modelData.providerName,
                         model: modelKey,
                         lifetimeCost: 0,
                         totalCalls: 0,
@@ -257,61 +256,32 @@
                 }
             }
             
-            // Process Usage History
+            // Aggregate Usage
             usage.forEach(record => {
-                // Ensure the record has the model name (new records will, old might not)
-                const modelKey = record.model;
-                if (aggregatedStats[modelKey]) {
-                    aggregatedStats[modelKey].lifetimeCost += record.cost;
-                    aggregatedStats[modelKey].totalCalls += 1;
+                const key = `${record.providerName}_${record.model}`;
+                if (usedProviders[key]) {
+                    usedProviders[key].lifetimeCost += record.cost;
+                    usedProviders[key].totalCalls += 1;
                 }
-                // NOTE: Records saved before V6.3 will be ignored here, necessitating the history reset/new runs.
             });
 
             // Render Cards
             let hasUsage = false;
-            for (const modelKey in aggregatedStats) {
-                const providerStats = aggregatedStats[modelKey];
+            for (const key in usedProviders) {
+                const providerStats = usedProviders[key];
                 if (providerStats.totalCalls > 0) {
                     hasUsage = true;
                     const avgCost = providerStats.totalCalls > 0 
                         ? providerStats.lifetimeCost / providerStats.totalCalls 
                         : 0;
-                    
-                    // Determine colors for visual segregation
-                    let bgColor = 'bg-gray-50';
-                    let borderColor = 'border-gray-300';
-                    let titleColor = 'text-gray-700';
-                    
-                    if (providerStats.providerName === 'OpenAI') {
-                        bgColor = 'bg-green-50';
-                        borderColor = 'border-green-300';
-                        titleColor = 'text-green-700';
-                    } else if (providerStats.providerName === 'Gemini') {
-                        bgColor = 'bg-blue-50';
-                        borderColor = 'border-blue-300';
-                        titleColor = 'text-blue-700';
-                    } else if (providerStats.providerName === 'Anthropic') {
-                        bgColor = 'bg-red-50';
-                        borderColor = 'border-red-300';
-                        titleColor = 'text-red-700';
-                    } else if (providerStats.providerName === 'OpenRouter') {
-                        bgColor = 'bg-purple-50';
-                        borderColor = 'border-purple-300';
-                        titleColor = 'text-purple-700';
-                    } else if (providerStats.providerName === 'Ollama') {
-                         bgColor = 'bg-yellow-50';
-                        borderColor = 'border-yellow-300';
-                        titleColor = 'text-yellow-700';
-                    }
-                    
-                    let cardContent = `
-                        <div class="p-4 rounded-lg shadow-md border ${bgColor} ${borderColor}">
-                            <h3 class="font-bold text-lg mb-2 ${titleColor}">${providerStats.providerName} (${providerStats.model})</h3>
+                        
+                    dashboardDiv.innerHTML += `
+                        <div class="p-4 rounded-lg shadow-md border ${providerStats.provider === 'Gemini' ? 'bg-blue-50 border-blue-300' : 'bg-green-50 border-green-300'}">
+                            <h3 class="font-bold text-lg mb-2 ${providerStats.provider === 'Gemini' ? 'text-blue-700' : 'text-green-700'}">${providerStats.provider} (${providerStats.model})</h3>
                             <div class="grid grid-cols-3 gap-2 text-sm font-mono">
                                 <div class="flex flex-col">
                                     <span class="text-gray-500">Total Calls:</span>
-                                    <span class="font-bold">${providerStats.totalCalls.toLocaleString()}</span>
+                                    <span class="font-bold">${providerStats.totalCalls}</span>
                                 </div>
                                 <div class="flex flex-col">
                                     <span class="text-gray-500">Avg. Cost/Call:</span>
@@ -322,21 +292,13 @@
                                     <span class="font-extrabold text-lg">$${providerStats.lifetimeCost.toFixed(2)}</span>
                                 </div>
                             </div>
+                        </div>
                     `;
-                    
-                    // Add Ollama clarity note
-                    if (providerStats.providerName === 'Ollama') {
-                        cardContent += `<p class="mt-3 text-xs italic text-gray-600 font-semibold">Cost is $0.00 as this is a local, self-hosted model.</p>`;
-                    }
-                    
-                    cardContent += `</div>`;
-                        
-                    dashboardDiv.innerHTML += cardContent;
                 }
             }
             
             if (!hasUsage) {
-                dashboardDiv.innerHTML = '<p class="text-center text-gray-500 italic">No usage logged yet. Run a prompt with a configured API!</p>';
+                dashboardDiv.innerHTML = '<p class="text-center text-gray-500 italic">No usage logged yet. Start running prompts!</p>';
             }
         }
 
@@ -378,19 +340,12 @@
                 const keyId = modelData.apiKey;
                 const apiKeyStatus = API_KEYS[keyId] ? 'Configured ✅' : 'Missing 🚫';
                 
-                let detailsHtml = `
+                detailsDiv.innerHTML = `
                     <p><strong>Provider:</strong> ${modelData.providerName}</p>
                     <p><strong>Input Price:</strong> $${(modelData.inPrice / 1000000).toFixed(6)} / token</p>
                     <p><strong>Output Price:</strong> $${(modelData.outPrice / 1000000).toFixed(6)} / token</p>
                     <p class="mt-2"><strong>API Key Status:</strong> <span class="font-bold">${apiKeyStatus}</span></p>
                 `;
-                
-                // Add Ollama specific clarity
-                if (modelData.providerName === 'Ollama') {
-                    detailsHtml += `<p class="mt-2 font-bold text-yellow-800">Note: Ollama is tracked at $0.00 cost as it runs locally.</p>`;
-                }
-                
-                detailsDiv.innerHTML = detailsHtml;
                 document.getElementById('submit-button').disabled = !API_KEYS[keyId] && keyId !== 'ollama_url';
             } else {
                 detailsDiv.textContent = 'Select a model to see details.';
@@ -419,12 +374,12 @@
             document.getElementById('output-tokens').textContent = outTok.toLocaleString();
             document.getElementById('estimated-cost').textContent = `$${totalCost.toFixed(6)}`;
             
-            // Update usage history - IMPORTANT: Saving the model name and provider name for segregation
+            // Update usage history
             usage.push({ 
                 id: Date.now(), 
-                pid: Date.now(),
+                pid: Date.now(), // Unique ID, not critical for MVP segmentation
                 providerName: modelData.providerName, 
-                model: getSelectedModelData().model, 
+                model: getSelectedModelData().model, // Save model name for segregation
                 ts: new Date().toISOString(), 
                 inTok, 
                 outTok, 
@@ -494,8 +449,11 @@
             }
 
             // Stream processing logic is complex, skipping for MVP console demonstration
-            const fullText = "MVP SUCCESS: Full response is too long to stream here, but cost calculation is complete. Run a few different models to populate the Provider Cost Dashboard!";
-            const inTok = prompt.length * 0.25; // Placeholder token counting
+            // This function should return { text, inTok, outTok }
+            // For this MVP, we will simulate a successful token count if streaming fails/is skipped
+            
+            const fullText = "MVP SUCCESS: Full response is too long to stream here, but cost calculation is complete.";
+            const inTok = prompt.length * 0.25;
             const outTok = 512; // Placeholder output tokens
             
             return { text: fullText, inTok: Math.ceil(inTok), outTok };
@@ -523,7 +481,7 @@
             const text = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
             const usage = json.usageMetadata || {};
 
-            // FIX FOR GEMINI BILLING (V6.2 fix applied)
+            // FIX FOR GEMINI BILLING
             const inTok = usage.promptTokenCount || 0;
             const totalTok = usage.totalTokenCount || 0;
             const outTok = Math.max(0, totalTok - inTok); 
