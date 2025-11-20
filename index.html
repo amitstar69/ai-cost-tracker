@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI Cost Tracker v8.0 (Final)</title>
+    <title>AI Cost Tracker v1.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
@@ -41,7 +41,7 @@
             <div class="flex items-center gap-3">
                 <div class="text-2xl">📉</div>
                 <div>
-                    <h1 class="text-xl font-bold">AI Cost Tracker <span class="text-xs bg-green-900 text-green-200 px-2 py-0.5 rounded">v8.0</span></h1>
+                    <h1 class="text-xl font-bold">AI Cost Tracker <span class="text-xs bg-green-900 text-green-200 px-2 py-0.5 rounded">v1.0</span></h1>
                 </div>
             </div>
             <div class="flex gap-2">
@@ -225,9 +225,7 @@
                 <button onclick="closeFeedbackModal()" class="text-gray-500 hover:text-white text-xl">&times;</button>
             </div>
             <p class="text-sm text-gray-400 mb-4">Found a bug or have a suggestion? Send an email directly to the developer.</p>
-            
             <textarea id="feedbackText" class="w-full bg-gray-950 border border-gray-700 rounded-lg p-4 h-32 text-sm mb-4 focus:border-purple-500 outline-none" placeholder="Describe your issue or idea here..."></textarea>
-            
             <button onclick="sendFeedback()" class="w-full py-3 bg-white text-black hover:bg-gray-200 rounded-lg font-bold transition">
                 Draft Email
             </button>
@@ -257,7 +255,7 @@
 
     <script>
         // --- CONFIGURATION ---
-        const DEVELOPER_EMAIL = "amitstar.ch@gmail.com"; // UPDATE THIS!
+        const DEVELOPER_EMAIL = "amitstar.ch@gmail.com"; 
 
         // --- PRICING DATABASE ---
         const PRESETS = {
@@ -419,4 +417,226 @@
         function renderHistoryLog(data) {
             const logDiv = document.getElementById('historyLog');
             const recentUsage = data.slice().sort((a,b) => b.id - a.id).slice(0, 10);
-            if (recentUsage.length === 0) { logDiv.innerHTML = '<p class="text-gray-500 text
+            if (recentUsage.length === 0) { logDiv.innerHTML = '<p class="text-gray-500 text-center text-sm italic">No activity to display.</p>'; return; }
+
+            logDiv.innerHTML = recentUsage.map(u => {
+                const p = providers.find(x => x.id === u.pid);
+                const date = new Date(u.ts).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                return `<div class="flex justify-between items-center text-xs font-mono bg-gray-950 p-3 rounded-lg border border-gray-800 hover:border-gray-700 transition">
+                        <div class="flex flex-col"><span class="text-gray-300 font-semibold">${p ? p.name.split('(')[0] : 'Deleted'}</span><span class="text-gray-500 truncate w-24">${p ? p.model : 'Unknown'}</span></div>
+                        <div class="text-right"><span class="text-green-400 font-bold">$${u.cost.toFixed(6)}</span><div class="text-gray-500 mt-0.5">${u.inTok + u.outTok} toks • ${date}</div></div></div>`;
+            }).join('');
+        }
+
+        /* ---------------- LOGIC ---------------- */
+
+        async function saveProvider() {
+            const type = document.getElementById('pType').value;
+            let name, modelId, inPrice, outPrice, baseUrl, apiKey;
+            const btn = document.getElementById('modalConnectBtn');
+            const statusDiv = document.getElementById('healthCheckStatus');
+            statusDiv.classList.add('hidden');
+            btn.disabled = true; btn.innerText = "Testing Connection...";
+
+            if (type === 'custom') {
+                modelId = document.getElementById('pModelRaw').value;
+                baseUrl = document.getElementById('pUrl').value;
+                inPrice = parseFloat(document.getElementById('pIn').value)||0; outPrice = parseFloat(document.getElementById('pOut').value)||0;
+                name = `Custom (${modelId})`; apiKey = document.getElementById('pKey').value;
+                if (!baseUrl) return showError("Base URL required.");
+            } else {
+                const presetData = JSON.parse(document.getElementById('pPreset').value);
+                modelId = presetData.id; name = presetData.name; inPrice = presetData.in; outPrice = presetData.out;
+                if (type === 'ollama') baseUrl = 'http://localhost:11434/v1';
+                else if (type === 'openrouter') baseUrl = 'https://openrouter.ai/api/v1';
+                else if (type === 'openai') baseUrl = 'https://api.openai.com/v1';
+                else if (type === 'anthropic') baseUrl = 'https://api.anthropic.com/v1';
+                apiKey = document.getElementById('pKey').value;
+            }
+
+            if (type !== 'ollama' && !apiKey) return showError("API Key required.");
+            
+            const newProvider = { id: Date.now().toString(), type, name, model: modelId, apiKey, baseUrl, inPrice, outPrice, totalCost: 0 };
+            const healthCheck = await pingProvider(newProvider);
+
+            if (healthCheck === true) {
+                providers.push(newProvider); saveState();
+                statusDiv.innerText = "Success!"; statusDiv.className = "text-xs text-green-400 bg-green-900/20 p-3 rounded-lg border border-green-900 mb-4"; statusDiv.classList.remove('hidden');
+                setTimeout(() => { closeAddModal(); document.getElementById('pKey').value = ''; statusDiv.classList.add('hidden'); }, 1000);
+            } else {
+                showError(healthCheck);
+            }
+
+            function showError(msg) {
+                statusDiv.innerText = msg; statusDiv.className = "text-xs text-red-400 bg-red-900/20 p-3 rounded-lg border border-red-900 mb-4"; statusDiv.classList.remove('hidden');
+                btn.disabled = false; btn.innerText = "Retry Connect";
+            }
+        }
+
+        async function pingProvider(p) {
+            try {
+                if (p.type === 'gemini') await callGemini(p, 'ping', true);
+                else await callStandard(p, 'ping', true);
+                return true;
+            } catch (e) { return parseApiError(e.message, p.type); }
+        }
+
+        async function runPrompt() {
+            const pid = document.getElementById('activeProvider').value;
+            const prompt = document.getElementById('promptInput').value;
+            if (!pid || !prompt) return alert("Select provider and enter prompt.");
+
+            const p = providers.find(x => x.id === pid);
+            const btn = document.getElementById('sendBtn');
+            const outArea = document.getElementById('outputArea');
+            const outContent = document.getElementById('outputContent');
+            const runStats = document.getElementById('runStats');
+            
+            btn.innerHTML = "Thinking... ⚡️"; btn.disabled = true;
+            outArea.classList.remove('hidden'); outContent.innerHTML = '<span class="animate-pulse text-gray-500">Connecting...</span>';
+            outArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            let inTok = 0, outTok = 0, cost = 0;
+
+            try {
+                if (p.type === 'gemini') {
+                    const streamResponse = await callGemini(p, prompt, false);
+                    outContent.innerHTML = '';
+                    const result = await streamGeminiResponse(streamResponse, outContent);
+                    inTok = Math.ceil(prompt.length / TOKEN_EST_FACTOR);
+                    outTok = result.usageMetrics.completion_tokens;
+                } else {
+                    const streamResult = await callStandard(p, prompt, false);
+                    outContent.innerHTML = '';
+                    const result = await streamStandardResponse(streamResult, outContent);
+                    inTok = result.usageMetrics?.prompt_tokens || Math.ceil(prompt.length / TOKEN_EST_FACTOR);
+                    outTok = result.usageMetrics?.completion_tokens || Math.ceil(result.text.length / TOKEN_EST_FACTOR);
+                }
+                cost = (inTok / 1e6 * p.inPrice) + (outTok / 1e6 * p.outPrice);
+                runStats.innerText = `In: ${inTok} • Out: ${outTok} • Cost: $${cost.toFixed(6)}`;
+                usage.push({ id: Date.now(), pid: p.id, ts: new Date().toISOString(), inTok, outTok, cost });
+                saveState();
+            } catch (e) {
+                outContent.innerHTML = `<div class="bg-red-900/20 border border-red-800 text-red-300 p-4 rounded-lg text-sm"><strong>Request Failed:</strong> ${parseApiError(e.message, p.type)}</div>`;
+            } finally { btn.innerHTML = "Run Request"; btn.disabled = false; }
+        }
+
+        // --- API HANDLERS ---
+        async function callGemini(p, prompt, isPing) {
+            const endpoint = isPing ? 'generateContent' : 'streamGenerateContent?alt=sse';
+            const modelPath = p.model.includes('/') ? p.model.replace(/\//g, '-') : p.model;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelPath}:${endpoint}&key=${p.apiKey}`;
+            const body = { contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: isPing ? 1 : undefined } };
+            const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            if (!r.ok) { const t = await r.text(); throw new Error(`Status: ${r.status} - ${t}`); }
+            return isPing ? true : r;
+        }
+
+        async function streamGeminiResponse(response, outputElement) {
+            const reader = response.body.getReader();
+            let fullText = "";
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                const lines = decoder.decode(value).split('\n');
+                for (const line of lines) {
+                    if (line.startsWith('data:')) {
+                        try {
+                            const json = JSON.parse(line.substring(5));
+                            const textPart = json.candidates?.[0]?.content?.parts?.[0]?.text;
+                            if (textPart) { fullText += textPart; outputElement.innerHTML = marked.parse(fullText + '<span class="stream-cursor"></span>'); }
+                        } catch (e) {}
+                    }
+                }
+            }
+            outputElement.innerHTML = marked.parse(fullText);
+            return { text: fullText, usageMetrics: { completion_tokens: Math.ceil(fullText.length / 4) } };
+        }
+
+        async function callStandard(p, prompt, isPing) {
+            const url = p.baseUrl.endsWith('/') ? `${p.baseUrl}chat/completions` : `${p.baseUrl}/chat/completions`;
+            const headers = { "Content-Type": "application/json" };
+            if (p.apiKey && p.type !== 'anthropic') headers["Authorization"] = `Bearer ${p.apiKey}`;
+            if (p.type === 'openrouter') { headers["HTTP-Referer"] = window.location.href; headers["X-Title"] = "AI Cost Tracker"; }
+            if (p.type === 'anthropic') {
+                 headers["x-api-key"] = p.apiKey; headers["anthropic-version"] = "2023-06-01"; headers["anthropic-dangerous-direct-browser-access"] = "true";
+            }
+            const body = { model: p.model, messages: [{ role: "user", content: prompt }], stream: !isPing, max_tokens: isPing ? 1 : undefined };
+            const r = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+            if (!r.ok) { const t = await r.text(); throw new Error(`Status: ${r.status} - ${t}`); }
+            return isPing ? true : r;
+        }
+
+        async function streamStandardResponse(response, targetElement) {
+            const reader = response.body.getReader();
+            let fullText = ""; let usageMetrics = null;
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                const lines = decoder.decode(value).split('\n');
+                for (const line of lines) {
+                    if (line.startsWith('data:')) {
+                        const data = line.substring(5).trim();
+                        if (data === '[DONE]') continue;
+                        try {
+                            const json = JSON.parse(data);
+                            const content = json.choices?.[0]?.delta?.content || json.choices?.[0]?.text || '';
+                            if (content) { fullText += content; targetElement.innerHTML = marked.parse(fullText + '<span class="stream-cursor"></span>'); }
+                            if (json.usage) usageMetrics = json.usage;
+                        } catch (e) {}
+                    }
+                }
+            }
+            targetElement.innerHTML = marked.parse(fullText);
+            return { text: fullText, usageMetrics };
+        }
+
+        // Helpers
+        function updateEstimate() {
+            const text = document.getElementById('promptInput').value;
+            const pid = document.getElementById('activeProvider').value;
+            const display = document.getElementById('estCost');
+            if (!text || !pid) { display.innerText = '$0.0000 est.'; return; }
+            const p = providers.find(x => x.id === pid);
+            const tokens = Math.ceil(text.length / 4);
+            const cost = (tokens / 1e6) * p.inPrice;
+            display.innerText = `~${tokens} toks • $${cost.toFixed(6)} est.`;
+        }
+
+        function parseApiError(errorText, type) {
+            if (errorText.includes('401') || errorText.includes('403')) return `**Access Denied**: Check your API Key.`;
+            if (errorText.includes('404')) return `**Not Found**: Check Model ID or URL.`;
+            if (errorText.includes('Failed to fetch')) return `**Network Error**: Likely CORS. Use OpenRouter or Proxy.`;
+            return errorText.substring(0, 100);
+        }
+
+        function openAddModal() { document.getElementById('modalAdd').classList.add('active'); updateModalUI(); }
+        function closeAddModal() { document.getElementById('modalAdd').classList.remove('active'); document.getElementById('modalConnectBtn').innerText="Connect"; document.getElementById('modalConnectBtn').disabled=false; }
+        function openSettings() { document.getElementById('modalSettings').classList.add('active'); }
+        function closeSettings() { document.getElementById('modalSettings').classList.remove('active'); }
+        function openAboutModal() { document.getElementById('modalAbout').classList.add('active'); }
+        function closeAboutModal() { document.getElementById('modalAbout').classList.remove('active'); }
+        function openFeedbackModal() { document.getElementById('modalFeedback').classList.add('active'); }
+        function closeFeedbackModal() { document.getElementById('modalFeedback').classList.remove('active'); }
+        
+        function deleteProvider(id) { if(confirm('Remove?')) { providers = providers.filter(p=>p.id!==id); saveState(); }}
+        function clearData() { if(confirm('Delete ALL?')) { providers=[]; usage=[]; saveState(); closeSettings(); }}
+        function clearUsageOnly() { if(confirm('Clear history?')) { usage=[]; saveState(); closeSettings(); }}
+        
+        function sendFeedback() {
+            const text = document.getElementById('feedbackText').value;
+            const subject = encodeURIComponent("AI Cost Tracker Feedback");
+            const body = encodeURIComponent(text);
+            window.location.href = `mailto:${DEVELOPER_EMAIL}?subject=${subject}&body=${body}`;
+        }
+
+        function exportData() {
+            const blob = new Blob([JSON.stringify({providers, usage}, null, 2)], {type : 'application/json'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'ai_tracker_backup.json';
+            a.click();
+        }
+    </script>
+</body>
+</html>
