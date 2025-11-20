@@ -1,59 +1,33 @@
-# 📉 AI Cost Tracker (Privacy-First & Local-Only)
+# 📉 AI Cost Tracker
 
-**The unified dashboard for your LLM spending. Zero backend. Zero tracking. 100% Open Source.**
+**The unified dashboard for your LLM spending. Zero backend. Zero tracking. 100% Local.**
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Privacy](https://img.shields.io/badge/privacy-100%25%20local-green.svg)
 ![Stack](https://img.shields.io/badge/stack-HTML%2FJS-orange.svg)
 
-## 😫 The Problem
-To check your AI spending today, you have to:
-1. Log into OpenAI.
-2. Log into Anthropic.
-3. Log into OpenRouter/Google/DeepSeek.
-4. Add it all up manually.
+## 🚀 Why use this?
+Developers often have API keys for OpenAI, Anthropic, and OpenRouter, plus local Ollama models running. Tracking how much you spend across all of them in real-time is a pain. 
 
-## 🚀 The Solution
-**AI Cost Tracker** is a single-file HTML application that runs entirely in your browser. It connects directly to API endpoints to track usage and estimate costs in real-time as you test prompts.
+**AI Cost Tracker** solves this with a single, private dashboard running entirely in your browser.
 
-### ✨ Key Features
-*   **Unified Dashboard:** Track OpenAI, Gemini, and Custom (Ollama/LocalAI) costs in one view.
-*   **Privacy First:** API keys are stored in your browser's `localStorage`. Nothing is ever sent to our servers (because we don't have one).
-*   **Playground:** Test prompts with Markdown rendering support.
-*   **Real-Time Estimates:** See how much a prompt will cost *before* you send it.
-*   **Ollama Ready:** Treat your local models like paid APIs to calculate "theoretical" savings.
+## ✨ Key Features
+* **Unified Dashboard:** Track OpenAI, Anthropic, Gemini, OpenRouter, and Ollama in one view.
+* **Real-Time Streaming:** Watch responses token-by-token with instant cost calculation.
+* **Cost Segregation:** Filter dashboard stats by specific provider to see exactly who is spending what.
+* **Privacy First:** Your API keys and usage history are stored in your browser's `Local Storage`. Nothing is ever sent to a backend server.
+* **Data Portability:** Export your full usage history to JSON at any time.
 
 ## 🛠️ Quick Start
-There are two ways to use this:
-
-### Option A: The 30-Second Setup (Recommended)
-1.  [Click here to view the live app](https://YOUR-USERNAME.github.io/REPO-NAME).
-2.  Click **+ Add Provider**.
-3.  Enter your API Key (e.g., OpenAI) or Local URL (Ollama).
-4.  Start typing in the Playground.
-
-### Option B: Run Locally (For maximum paranoia)
-1.  Download the `index.html` file from this repository.
-2.  Disconnect your internet (optional, to verify safety).
-3.  Double-click `index.html` to open it in your browser.
+1.  **[Click here to use the live app](https://YOUR-USERNAME.github.io/YOUR-REPO)**.
+2.  Click **+ Connect API**.
+3.  Choose a provider (e.g., **OpenRouter** or **Ollama**).
+4.  Start prompting.
 
 ## 🔒 Security & Privacy
-We take security seriously. Here is how this app works:
-*   **Client-Side Only:** This app is a static HTML file. There is no database and no backend server.
-*   **Network Activity:** Open your browser's "Network" tab. You will see requests *only* to the APIs you configure (e.g., `api.openai.com`) and `cdn.tailwindcss.com` for styling.
-*   **Key Storage:** Keys are saved in `localStorage`. Clearing your browser cache wipes them instantly.
-
-## ⚠️ Important Note on CORS
-Some providers (like **Anthropic**) block browser-based API calls for security.
-*   **OpenAI / Gemini / OpenRouter:** Work out of the box.
-*   **Ollama / LM Studio:** Work out of the box (ensure CORS is enabled locally).
-*   **Anthropic:** Requires a local proxy. We recommend using OpenRouter or a proxy server if you need Claude in the browser.
-
-## 🤝 Contributing
-Missing a feature? Found a bug?
-1.  Fork this repo.
-2.  Edit `index.html` directly.
-3.  Submit a PR.
+* **Client-Side Only:** This is a static HTML file. Inspect the code—there is no database and no tracking analytics.
+* **Direct Connections:** The app connects directly from your browser to the API provider (e.g., `api.openai.com`).
+* **CORS Note:** For the best experience with Anthropic/Claude, use an **OpenRouter** key, as Anthropic directly blocks browser-based requests.
 
 ---
-*Built for developers who hate fragmented billing.*
+*Built for developers who want control over their AI budget.*
