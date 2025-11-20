@@ -147,7 +147,10 @@
             <select id="pType" onchange="updateModalUI()" class="w-full bg-gray-950 border border-gray-700 rounded-lg p-3 mb-4 text-sm focus:border-purple-500 outline-none text-white">
                 <option value="openai">OpenAI (GPT)</option>
                 <option value="gemini">Google Gemini</option>
-                <option value="anthropic">Anthropic (Claude)</option> <option value="grok">xAI (Grok)</option> <option value="kimi">Moonshot AI (Kimi)</option> <option value="openrouter">OpenRouter (Recommended)</option>
+                <option value="anthropic">Anthropic (Claude)</option> 
+                <option value="grok">xAI (Grok)</option> 
+                <option value="kimi">Moonshot AI (Kimi)</option> 
+                <option value="openrouter">OpenRouter (Recommended)</option>
                 <option value="ollama">Ollama (Local)</option>
                 <option value="custom">Custom / Other</option>
             </select>
@@ -235,23 +238,23 @@
                 { id: 'gpt-4o', name: 'GPT-4o', in: 5.00, out: 15.00, emoji: '🧠' },
                 { id: 'gpt-4o-mini', name: 'GPT-4o Mini', in: 0.15, out: 0.60, emoji: '⚙️' },
                 { id: 'gpt-4-turbo-2024-04-09', name: 'GPT-4 Turbo', in: 10.00, out: 30.00, emoji: '🚀' },
-                { id: 'gpt-3.5-turbo-0125', name: 'GPT-3.5 Turbo', in: 0.50, out: 1.50, emoji: '💨' }
+                { id: 'gpt-3.5-turbo-0125', name: 'GPT-3.5-Turbo', in: 0.50, out: 1.50, emoji: '💨' }
             ],
             'gemini': [
                 { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', in: 0.35, out: 0.45, emoji: '⚡' },
                 { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', in: 3.50, out: 10.50, emoji: '✨' },
                 { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash-Lite', in: 0.15, out: 0.25, emoji: '📉' }
             ],
-            'anthropic': [ // V6.2 ADDITION
+            'anthropic': [ 
                 { id: 'claude-4-1-opus', name: 'Claude 4.1 Opus', in: 15.00, out: 75.00, emoji: '🌟' },
                 { id: 'claude-4-1-sonnet', name: 'Claude 4.1 Sonnet', in: 5.00, out: 25.00, emoji: '✨' },
                 { id: 'claude-3-5-haiku', name: 'Claude 3.5 Haiku', in: 0.80, out: 4.00, emoji: '🍃' }
             ],
-            'grok': [ // V6.2 ADDITION
+            'grok': [ 
                 { id: 'grok-4', name: 'Grok-4 (Frontier)', in: 3.00, out: 15.00, emoji: '🚀' },
                 { id: 'grok-4-fast-reasoning', name: 'Grok-4 Fast', in: 0.20, out: 0.50, emoji: '⚡' }
             ],
-            'kimi': [ // V6.2 ADDITION
+            'kimi': [ 
                 { id: 'kimi-k2-0905-preview', name: 'Kimi K2 Instruct', in: 0.60, out: 2.50, emoji: '🔥' },
                 { id: 'kimi-k2-thinking', name: 'Kimi K2 Thinking', in: 0.60, out: 2.50, emoji: '💭' }
             ],
@@ -457,13 +460,13 @@
             } else if (type === 'gemini') {
                 defaultUrl = 'https://generativelanguage.googleapis.com/v1beta/models';
                 keyPlaceholder = 'Gemini Key (e.g., AIza...)';
-            } else if (type === 'anthropic') { // V6.2
+            } else if (type === 'anthropic') { 
                 defaultUrl = 'https://api.anthropic.com/v1';
                 keyPlaceholder = 'Anthropic Key (e.g., sk-ant-...)';
-            } else if (type === 'grok') { // V6.2
+            } else if (type === 'grok') { 
                 defaultUrl = 'https://api.x.ai/v1';
                 keyPlaceholder = 'Grok Key (e.g., grok-...)';
-            } else if (type === 'kimi') { // V6.2
+            } else if (type === 'kimi') { 
                 defaultUrl = 'https://api.moonshot.ai/v1';
                 keyPlaceholder = 'Kimi Key (e.g., sk-moon-...)';
             } else if (type === 'openrouter') {
@@ -578,9 +581,10 @@
         async function pingProvider(p) {
             try {
                 if (p.type === 'gemini') {
-                    await callGemini(p, 'ping', true); 
+                    // Gemini ping requires a small text payload for testing
+                    await callGemini(p, 'ping test', true); 
                 } else {
-                    // Kimi, Anthropic, Grok, OpenAI, OpenRouter, Ollama, Custom all use standard
+                    // All standard APIs (OpenAI, Anthropic, OpenRouter, etc.)
                     await callStandard(p, 'ping', true);
                 }
                 return true;
@@ -595,6 +599,9 @@
             
             if (status === 401 || status === 403 || errorText.includes('401') || errorText.includes('403')) {
                 return `**Connection Failed (401/403)**: Invalid API Key or Permissions.\n\n**Action:** Check your API key. Generate a new key if necessary.`;
+            }
+            if (status === 402 || errorText.includes('402')) {
+                return `**Connection Failed (402)**: Payment Required or Insufficient Credit.\n\n**Action:** Check your provider's billing account and add funds.`;
             }
             if (status === 404 || errorText.includes('404')) {
                 return `**Connection Failed (404)**: Invalid Model ID or Base URL.\n\n**Action:** Verify the Base URL (e.g., must end in /v1) and the Model ID are correct.`;
@@ -655,6 +662,7 @@
                     outContent.innerHTML = '';
                     const { text, usageMetrics } = await streamStandardResponse(streamResult, outContent);
                     fullText = text;
+                    // Token count from final stream chunk (if available) or fallback estimation
                     inTok = usageMetrics?.prompt_tokens || Math.ceil(prompt.length / TOKEN_EST_FACTOR);
                     outTok = usageMetrics?.completion_tokens || Math.ceil(fullText.length / TOKEN_EST_FACTOR);
                 }
@@ -715,9 +723,6 @@
                 delete headers['Authorization']; // Use their specific header
                 body.system = "You are a helpful assistant."; // Anthropic requires a system message
             }
-            if (p.type === 'grok') {
-                // Grok uses the standard bearer token
-            }
             if (p.type === 'openrouter') {
                 headers['HTTP-Referer'] = 'https://amitstar69.github.io/ai-cost-tracker/'; // Recommended for OpenRouter
                 headers['X-Title'] = 'AI Cost Tracker';
@@ -741,7 +746,6 @@
             }
 
             if (isPing) {
-                // For ping, just check for success
                 return true; 
             }
 
@@ -774,18 +778,16 @@
                             const json = JSON.parse(data);
                             const delta = json.choices?.[0]?.delta?.content || "";
                             
-                            // Check for final usage metrics (for OpenRouter, Grok, etc.)
+                            // Capture usage metrics from the final chunk
                             if (json.usage) {
                                 usageMetrics = json.usage;
                             }
                             
                             if (delta) {
                                 fullText += delta;
-                                // Simple update to the UI for streaming effect
                                 outContent.innerHTML = marked.parse(fullText);
-                                outContent.appendChild(cursor); // Re-append cursor
+                                outContent.appendChild(cursor); 
                                 
-                                // Scroll to bottom on new chunk
                                 outContent.parentElement.scrollTop = outContent.parentElement.scrollHeight; 
                             }
                         } catch (e) {
@@ -794,15 +796,43 @@
                     }
                 }
             }
-            cursor.remove(); // Remove cursor when done
+            cursor.remove(); 
             return { text: fullText, usageMetrics };
         }
 
+        // Simulates streaming for models that don't support it or if it's too complex (like Gemini)
+        function streamTextToUI(text, outContent) {
+            return new Promise(resolve => {
+                let i = 0;
+                const cursor = document.createElement('span');
+                cursor.className = 'stream-cursor';
+                outContent.appendChild(cursor);
+
+                function writeChunk() {
+                    if (i < text.length) {
+                        const chunk = text.substring(i, i + 5); 
+                        outContent.innerHTML = marked.parse(text.substring(0, i + 5));
+                        outContent.appendChild(cursor);
+                        i += 5;
+                        setTimeout(writeChunk, 5); // Fast output rate
+                    } else {
+                        cursor.remove();
+                        resolve();
+                    }
+                }
+                writeChunk();
+            });
+        }
+
+
         async function callGemini(p, prompt, isPing) {
-            // Note: Gemini uses a slightly different non-streaming API
             const body = {
                 contents: [{ role: "user", parts: [{ text: prompt }] }],
             };
+            // Limit output tokens for ping test
+            if (isPing) {
+                 body.config = { maxOutputTokens: 1 };
+            }
 
             const url = `${p.baseUrl}/${p.model}:generateContent?key=${p.apiKey}`;
 
@@ -822,12 +852,17 @@
             if (isPing) {
                 return true;
             }
-
-            const text = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
-            const inTok = json.usageMetadata?.promptTokenCount || 0;
-            const outTok = json.usageMetadata?.candidatesTokenCount || 0;
             
-            return { text, inTok, outTok };
+            const text = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const usage = json.usageMetadata || {};
+
+            // V6.2 FIX: Calculate output tokens using total - input, 
+            // to correctly account for all billable components (candidates + thoughts)
+            const inTok = usage.promptTokenCount || 0;
+            const totalTok = usage.totalTokenCount || 0;
+            const finalOutTok = totalTok - inTok;
+            
+            return { text, inTok, outTok: finalOutTok };
         }
         
         // --- MODAL CONTROLS ---
