@@ -293,7 +293,7 @@
         /* ---------------- INITIALIZATION ---------------- */
         document.addEventListener('DOMContentLoaded', () => {
             renderUI();
-            updateModalUI(); 
+            updateModalUI(); // Initialize the model list on load
             
             document.getElementById('promptInput').addEventListener('input', updateEstimate);
             document.getElementById('activeProvider').addEventListener('change', updateEstimate);
@@ -427,7 +427,43 @@
                         <div class="text-right"><span class="text-green-400 font-bold">$${u.cost.toFixed(6)}</span><div class="text-gray-500 mt-0.5">${u.inTok + u.outTok} toks • ${date}</div></div></div>`;
             }).join('');
         }
+        
+        // --- Modal UI Handler (THE FIX) ---
+        function updateModalUI() {
+            const type = document.getElementById('pType').value;
+            const presetSelect = document.getElementById('pPreset');
+            const customFields = document.getElementById('customFields');
+            const smartModelContainer = document.getElementById('smartModelContainer');
+            const anthropicHint = document.getElementById('anthropicHint');
 
+            // Reset UI elements
+            presetSelect.innerHTML = '';
+            anthropicHint.classList.add('hidden');
+
+            if (type === 'custom') {
+                customFields.classList.remove('hidden');
+                smartModelContainer.classList.add('hidden');
+            } else {
+                customFields.classList.add('hidden');
+                smartModelContainer.classList.remove('hidden');
+                
+                if (PRESETS[type]) {
+                    PRESETS[type].forEach(model => {
+                        const opt = document.createElement('option');
+                        opt.value = JSON.stringify({ id: model.id, name: model.name, in: model.in, out: model.out });
+                        opt.innerText = `${model.emoji} ${model.name} (${model.id.split('/').pop()})`;
+                        presetSelect.appendChild(opt);
+                    });
+                }
+                
+                if (type === 'anthropic') {
+                    anthropicHint.classList.remove('hidden');
+                }
+                // Update estimated cost in the main playground when models change/load
+                updateEstimate(); 
+            }
+        }
+        
         /* ---------------- LOGIC ---------------- */
 
         async function saveProvider() {
