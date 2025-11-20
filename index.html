@@ -428,7 +428,6 @@
             }).join('');
         }
         
-        // --- Modal UI Handler (THE FIX) ---
         function updateModalUI() {
             const type = document.getElementById('pType').value;
             const presetSelect = document.getElementById('pPreset');
@@ -436,7 +435,6 @@
             const smartModelContainer = document.getElementById('smartModelContainer');
             const anthropicHint = document.getElementById('anthropicHint');
 
-            // Reset UI elements
             presetSelect.innerHTML = '';
             anthropicHint.classList.add('hidden');
 
@@ -459,7 +457,6 @@
                 if (type === 'anthropic') {
                     anthropicHint.classList.remove('hidden');
                 }
-                // Update estimated cost in the main playground when models change/load
                 updateEstimate(); 
             }
         }
@@ -497,14 +494,16 @@
 
             if (healthCheck === true) {
                 providers.push(newProvider); saveState();
-                statusDiv.innerText = "Success!"; statusDiv.className = "text-xs text-green-400 bg-green-900/20 p-3 rounded-lg border border-green-900 mb-4"; statusDiv.classList.remove('hidden');
+                statusDiv.innerText = "Success! Connection verified."; statusDiv.className = "text-xs text-green-400 bg-green-900/20 p-3 rounded-lg border border-green-900 mb-4"; statusDiv.classList.remove('hidden');
                 setTimeout(() => { closeAddModal(); document.getElementById('pKey').value = ''; statusDiv.classList.add('hidden'); }, 1000);
             } else {
                 showError(healthCheck);
             }
 
             function showError(msg) {
-                statusDiv.innerText = msg; statusDiv.className = "text-xs text-red-400 bg-red-900/20 p-3 rounded-lg border border-red-900 mb-4"; statusDiv.classList.remove('hidden');
+                // Modified to handle action formatting consistently
+                statusDiv.innerHTML = `<div class="font-bold text-red-300">Connection Failed:</div><div class="mt-1">${msg}</div>`;
+                statusDiv.className = "text-xs text-red-400 bg-red-900/20 p-3 rounded-lg border border-red-900 mb-4"; statusDiv.classList.remove('hidden');
                 btn.disabled = false; btn.innerText = "Retry Connect";
             }
         }
@@ -553,7 +552,8 @@
                 usage.push({ id: Date.now(), pid: p.id, ts: new Date().toISOString(), inTok, outTok, cost });
                 saveState();
             } catch (e) {
-                outContent.innerHTML = `<div class="bg-red-900/20 border border-red-800 text-red-300 p-4 rounded-lg text-sm"><strong>Request Failed:</strong> ${parseApiError(e.message, p.type)}</div>`;
+                // Use parseApiError for runtime errors too
+                outContent.innerHTML = `<div class="bg-red-900/20 border border-red-800 text-red-300 p-4 rounded-lg text-sm">${parseApiError(e.message, p.type)}</div>`;
             } finally { btn.innerHTML = "Run Request"; btn.disabled = false; }
         }
 
@@ -562,15 +562,29 @@
             const endpoint = isPing ? 'generateContent' : 'streamGenerateContent?alt=sse';
             const modelPath = p.model.includes('/') ? p.model.replace(/\//g, '-') : p.model;
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelPath}:${endpoint}&key=${p.apiKey}`;
-            const body = { contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: isPing ? 1 : undefined } };
+            
+            let body = { 
+                contents: [{ parts: [{ text: prompt }] }] 
+            };
+
+            if (isPing) {
+                body.generationConfig = { maxOutputTokens: 1 };
+            }
+
             const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-            if (!r.ok) { const t = await r.text(); throw new Error(`Status: ${r.status} - ${t}`); }
+            
+            if (!r.ok) { 
+                const t = await r.text(); 
+                throw new Error(`Status: ${r.status} - ${t}`); 
+            }
             return isPing ? true : r;
         }
 
         async function streamGeminiResponse(response, outputElement) {
             const reader = response.body.getReader();
             let fullText = "";
+            let usageMetrics = { completion_tokens: 0 }; 
+
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
@@ -580,13 +594,20 @@
                         try {
                             const json = JSON.parse(line.substring(5));
                             const textPart = json.candidates?.[0]?.content?.parts?.[0]?.text;
-                            if (textPart) { fullText += textPart; outputElement.innerHTML = marked.parse(fullText + '<span class="stream-cursor"></span>'); }
+                            if (textPart) { 
+                                fullText += textPart; 
+                                outputElement.innerHTML = marked.parse(fullText + '<span class="stream-cursor"></span>'); 
+                                usageMetrics.completion_tokens = (json.usageMetadata?.candidatesTokenCount || usageMetrics.completion_tokens);
+                            }
                         } catch (e) {}
                     }
                 }
             }
             outputElement.innerHTML = marked.parse(fullText);
-            return { text: fullText, usageMetrics: { completion_tokens: Math.ceil(fullText.length / 4) } };
+            if (usageMetrics.completion_tokens === 0) {
+                usageMetrics.completion_tokens = Math.ceil(fullText.length / 4);
+            }
+            return { text: fullText, usageMetrics };
         }
 
         async function callStandard(p, prompt, isPing) {
@@ -638,12 +659,42 @@
             const cost = (tokens / 1e6) * p.inPrice;
             display.innerText = `~${tokens} toks • $${cost.toFixed(6)} est.`;
         }
-
+        
+        // --- IMPROVED ERROR PARSING (THE FIX) ---
         function parseApiError(errorText, type) {
-            if (errorText.includes('401') || errorText.includes('403')) return `**Access Denied**: Check your API Key.`;
-            if (errorText.includes('404')) return `**Not Found**: Check Model ID or URL.`;
-            if (errorText.includes('Failed to fetch')) return `**Network Error**: Likely CORS. Use OpenRouter or Proxy.`;
-            return errorText.substring(0, 100);
+            const statusMatch = errorText.match(/Status: (\d+)/);
+            const status = statusMatch ? parseInt(statusMatch[1]) : null;
+
+            if (errorText.includes('Failed to fetch') || errorText.includes('Type Error')) {
+                return `**Network Error:** The browser could not connect to the API URL.
+                    - **Action 1:** Check your **Base URL** (for Custom or Ollama).
+                    - **Action 2:** If using Gemini/OpenAI/Anthropic, this often means **CORS (Cross-Origin Resource Sharing)** policy is blocking the request. The best solution is to use **OpenRouter** as a gateway.`;
+            }
+
+            if (status === 401 || errorText.includes('401') || status === 403 || errorText.includes('403')) {
+                let keyAction = `- **Action:** Double-check your **API Key** for typos. Ensure the key has the correct permissions (e.g., the **Generative Language API** is enabled for your Gemini key).`;
+                if (type === 'openai') keyAction = `- **Action:** Double-check your **API Key** and ensure your OpenAI account has billing set up.`;
+                return `**Access Denied (${status || 'Key Error'}):** Your API Key was rejected.
+                    ${keyAction}`;
+            }
+
+            if (status === 404 || errorText.includes('404')) {
+                return `**Not Found (Status 404):** The API or Model ID could not be found.
+                    - **Action 1:** Check the spelling of the **Model ID** (e.g., \`gemini-1.5-flash\` or \`gpt-4o\`).
+                    - **Action 2:** Check the **Base URL** for Custom providers.`;
+            }
+
+            if (errorText.includes('Invalid JSON payload received')) {
+                return `**API Format Error (Status 400):** The Gemini API rejected the request format. This is a client-side code bug in the health check.
+                    - **Action:** If this error persists, try using **OpenRouter** which handles Gemini model integration more reliably.`;
+            }
+
+            // Fallback for uncaught errors
+            const bodyMatch = errorText.match(/Body: (\{.*\})/);
+            const bodySnippet = bodyMatch ? JSON.parse(bodyMatch[1]).error?.message || errorText.substring(0, 100) : errorText.substring(0, 100);
+
+            return `**Uncaught API Error:** ${bodySnippet.replace(/Status: \d+ - /g, '')}
+                - **Action:** Review the provider's official documentation for error details, or try a different model/provider.`;
         }
 
         function openAddModal() { document.getElementById('modalAdd').classList.add('active'); updateModalUI(); }
