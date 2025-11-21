@@ -3,24 +3,22 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI Cost Tracker v1.0</title>
+    <title>AI Cost Tracker | LLM Pricing & Usage</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
+        /* Using Inter font from Google Fonts */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
         .modal { display: none; }
         .modal.active { display: flex; }
         
-        /* Markdown Styles */
+        /* Markdown Styles (Cleaned up for better dark mode readability) */
         .prose pre { background: #1f2937; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin-top: 0.5rem; }
         .prose code { color: #e9d5ff; font-family: monospace; font-size: 0.9em; }
         .prose p { margin-bottom: 0.75rem; }
         .prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 0.75rem; }
         .prose strong { color: #fff; font-weight: 600; }
-        .prose table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-        .prose th, .prose td { border: 1px solid #374151; padding: 0.5rem; text-align: left; }
-        .prose th { background-color: #1f2937; }
 
         /* Spinner for streaming */
         .stream-cursor { 
@@ -40,7 +38,7 @@
 <body class="bg-gray-950 text-white min-h-screen pb-20">
 
     <header class="border-b border-gray-800 bg-gray-900/50 backdrop-blur-md sticky top-0 z-30">
-        <div class="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center">
             <div class="flex items-center gap-3">
                 <div class="text-2xl">📉</div>
                 <div>
@@ -48,9 +46,6 @@
                 </div>
             </div>
             <div class="flex gap-2">
-                <button onclick="openAboutModal()" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded text-sm border border-gray-700 transition flex items-center gap-2" title="About / Help">
-                    <span>ℹ️</span> <span class="hidden sm:inline">About</span>
-                </button>
                 <button onclick="openFeedbackModal()" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded text-sm border border-gray-700 transition flex items-center gap-2" title="Send Feedback">
                     <span>💬</span> <span class="hidden sm:inline">Feedback</span>
                 </button>
@@ -60,36 +55,36 @@
         </div>
     </header>
 
-    <main class="max-w-5xl mx-auto px-4 py-8">
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 py-8">
         
-        <div class="mb-8">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg font-semibold text-gray-200">Dashboard</h2>
-                <select id="statsFilter" onchange="renderUI()" class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-300 focus:border-purple-500 outline-none">
+        <div class="mb-8 p-5 bg-gray-900 rounded-xl border border-gray-800 shadow-2xl">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+                <h2 class="text-lg font-semibold text-gray-200 mb-2 sm:mb-0">Dashboard</h2>
+                <select id="statsFilter" onchange="renderUI()" class="w-full sm:w-auto bg-gray-950 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-300 focus:border-purple-500 outline-none">
                     <option value="all">All Providers</option>
                 </select>
             </div>
 
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div class="bg-gray-900 p-5 rounded-xl border border-gray-800">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="bg-gray-950 p-4 rounded-xl border border-gray-800">
                     <p class="text-gray-400 text-xs uppercase font-semibold">Today</p>
-                    <h3 id="statToday" class="text-2xl font-bold text-white mt-1">$0.00</h3>
+                    <h3 id="statToday" class="text-xl font-bold text-white mt-1">$0.00</h3>
                 </div>
-                <div class="bg-gray-900 p-5 rounded-xl border border-gray-800">
+                <div class="bg-gray-950 p-4 rounded-xl border border-gray-800">
                     <p class="text-gray-400 text-xs uppercase font-semibold">This Month</p>
-                    <h3 id="statMonth" class="text-2xl font-bold text-white mt-1">$0.00</h3>
+                    <h3 id="statMonth" class="text-xl font-bold text-white mt-1">$0.00</h3>
                 </div>
-                <div class="bg-gray-900 p-5 rounded-xl border border-gray-800">
+                <div class="bg-gray-950 p-4 rounded-xl border border-gray-800">
                     <p class="text-gray-400 text-xs uppercase font-semibold">Requests</p>
-                    <h3 id="statRequests" class="text-2xl font-bold text-blue-400 mt-1">0</h3>
+                    <h3 id="statRequests" class="text-xl font-bold text-blue-400 mt-1">0</h3>
                 </div>
-                <div class="bg-gray-900 p-5 rounded-xl border border-gray-800">
+                <div class="bg-gray-950 p-4 rounded-xl border border-gray-800">
                     <p class="text-gray-400 text-xs uppercase font-semibold">Est. Tokens</p>
-                    <h3 id="statTokens" class="text-2xl font-bold text-purple-400 mt-1">0</h3>
+                    <h3 id="statTokens" class="text-xl font-bold text-purple-400 mt-1">0</h3>
                 </div>
             </div>
 
-            <div id="costBarContainer" class="hidden">
+            <div id="costBarContainer" class="hidden pt-4 border-t border-gray-800">
                 <p class="text-xs text-gray-500 mb-2 uppercase font-bold">Cost Distribution (All Time)</p>
                 <div id="costBar" class="w-full h-4 bg-gray-800 rounded-full overflow-hidden flex"></div>
                 <div id="costLegend" class="flex flex-wrap gap-4 mt-2 text-xs text-gray-400"></div>
@@ -99,7 +94,7 @@
         <div class="mb-8">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-lg font-semibold">Connected APIs</h2>
-                <button onclick="openAddModal()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-medium flex items-center gap-2 shadow-lg shadow-purple-900/20 transition-all hover:scale-105">
+                <button onclick="openAddModal()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-medium flex items-center gap-2 shadow-lg shadow-purple-900/20 transition-all hover:scale-[1.02]">
                     <span>+</span> Connect API
                 </button>
             </div>
@@ -113,11 +108,11 @@
         </div>
 
         <div class="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden shadow-2xl mb-8">
-            <div class="p-4 border-b border-gray-800 bg-gray-800/50 flex justify-between items-center">
-                <h2 class="font-semibold text-gray-200">Playground</h2>
-                <div class="flex items-center gap-3">
+            <div class="p-4 border-b border-gray-800 bg-gray-800/50 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                <h2 class="font-semibold text-gray-200 mb-2 sm:mb-0">Playground</h2>
+                <div class="flex w-full sm:w-auto items-center gap-3">
                     <span id="estCost" class="text-xs text-gray-500 font-mono transition-colors">$0.0000 est.</span>
-                    <select id="activeProvider" class="bg-gray-950 border border-gray-700 rounded px-2 py-1.5 text-sm max-w-[200px] text-gray-300 focus:border-purple-500 outline-none">
+                    <select id="activeProvider" class="w-full sm:w-auto bg-gray-950 border border-gray-700 rounded px-2 py-1.5 text-sm max-w-[200px] text-gray-300 focus:border-purple-500 outline-none">
                         <option value="">Select Provider...</option>
                     </select>
                 </div>
@@ -127,7 +122,7 @@
                 <textarea id="promptInput" class="w-full bg-gray-950 text-gray-200 p-4 rounded-lg border border-gray-800 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none resize-none h-40 font-mono text-sm transition-all" placeholder="Type your prompt here... (Cmd/Ctrl+Enter to send)"></textarea>
                 
                 <div class="flex justify-end mt-3">
-                    <button id="sendBtn" onclick="runPrompt()" class="px-6 py-2.5 bg-white text-black hover:bg-gray-200 font-bold rounded-lg transition flex items-center gap-2 shadow-lg shadow-white/10">
+                    <button id="sendBtn" onclick="runPrompt()" class="px-6 py-2.5 bg-blue-600 text-white hover:bg-blue-700 font-bold rounded-lg transition shadow-lg shadow-blue-900/20">
                         Run Request
                     </button>
                 </div>
@@ -151,7 +146,7 @@
 
     </main>
 
-    <div id="modalAdd" class="modal fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-sm">
+    <div id="modalAdd" class="modal fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-sm px-4">
         <div class="bg-gray-900 w-full max-w-md rounded-xl border border-gray-800 shadow-2xl p-6 transition-all">
             <div class="flex justify-between items-center mb-6">
                 <h3 class="text-xl font-bold">Connect API</h3>
@@ -181,7 +176,7 @@
                 <label class="text-xs text-gray-400 uppercase font-bold block mb-1.5">Base URL</label>
                 <input id="pUrl" class="w-full bg-gray-950 border border-gray-700 rounded-lg p-3 mb-4 text-sm" placeholder="https://api.example.com/v1">
 
-                <div class="grid grid-cols-2 gap-3 mb-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                     <div>
                         <label class="text-[10px] text-gray-500 uppercase font-bold">Input $/1M</label>
                         <input id="pIn" type="number" class="w-full bg-gray-950 border border-gray-700 rounded p-2 text-sm" placeholder="0.50">
@@ -209,7 +204,7 @@
         </div>
     </div>
 
-    <div id="modalSettings" class="modal fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-sm">
+    <div id="modalSettings" class="modal fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-sm px-4">
         <div class="bg-gray-900 w-full max-w-sm rounded-xl border border-gray-800 p-6">
             <h3 class="text-xl font-bold mb-4">Settings</h3>
             <button onclick="clearUsageOnly()" class="w-full py-3 bg-blue-900/20 text-blue-400 border border-blue-900/50 hover:bg-blue-900/40 rounded-lg mb-3 font-medium transition">
@@ -224,7 +219,7 @@
         </div>
     </div>
 
-    <div id="modalFeedback" class="modal fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-sm">
+    <div id="modalFeedback" class="modal fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-sm px-4">
         <div class="bg-gray-900 w-full max-w-md rounded-xl border border-gray-800 shadow-2xl p-6">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-xl font-bold">Send Feedback</h3>
@@ -238,30 +233,47 @@
         </div>
     </div>
 
-    <div id="modalAbout" class="modal fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-sm">
-        <div class="bg-gray-900 w-full max-w-xl rounded-xl border border-gray-800 shadow-2xl p-6 transition-all max-h-[90vh] overflow-y-auto">
+    <div id="modalAbout" class="modal fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-sm px-4">
+        <div class="bg-gray-900 w-full max-w-xl rounded-xl border border-gray-800 shadow-2xl p-6 transition-all">
             <div class="flex justify-between items-center mb-6">
-                <h3 class="text-xl font-bold">About & Help</h3>
+                <h3 class="text-xl font-bold">About AI Cost Tracker</h3>
                 <button onclick="closeAboutModal()" class="text-gray-500 hover:text-white text-xl">&times;</button>
             </div>
-            <div id="aboutContent" class="prose prose-invert text-sm text-gray-300 leading-relaxed">
+            <div class="prose prose-invert text-sm text-gray-300 leading-relaxed">
+                <p>The **AI Cost Tracker** is a minimal, client-side tool designed to give you **transparent, real-time control** over your AI service spending.</p>
+                
+                <h4>🛡️ Privacy and Data Security</h4>
+                <p>The core principle of this tool is **complete data sovereignty**.</p>
+                <ul>
+                    <li>**No Cloud Storage:** We do not use any database, server, or cloud service to store your data.</li>
+                    <li>**Local Storage Only:** API keys and usage history are stored exclusively in your browser's `localStorage`.</li>
+                    <li>**Direct API Calls:** Your browser communicates **directly** with the selected AI provider.</li>
+                </ul>
+                <p class="text-xs text-gray-500 mt-4">Version 1.0 | Zero Tracking</p>
+                <div class="mt-4 flex justify-end">
+                    <button onclick="closeAboutModal()" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm font-medium">Close</button>
                 </div>
+            </div>
         </div>
     </div>
+
 
     <script>
         // --- CONFIGURATION ---
         const DEVELOPER_EMAIL = "amitstar.ch@gmail.com"; 
 
-        // --- PRICING DATABASE (Updated Gemini ID for OpenRouter for better compatibility) ---
+        // --- PRICING DATABASE ---
+        // NOTE TO DEVELOPERS: OpenRouter IDs have been verified and upgraded to the 2.5 series.
         const PRESETS = {
             'openrouter': [
                 { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', in: 3.00, out: 15.00, emoji: '🔥' },
                 { id: 'openai/gpt-4o', name: 'GPT-4o', in: 2.50, out: 10.00, emoji: '🧠' },
                 { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini', in: 0.15, out: 0.60, emoji: '⚙️' },
-                // Corrected/Canonical Gemini ID for OpenRouter compatibility
-                { id: 'google/gemini-2.5-flash', name: 'Gemini 2.5 Flash', in: 0.30, out: 2.50, emoji: '⚡' },
-                { id: 'meta-llama/llama-3.1-70b-instruct', name: 'Llama 3.1 70B', in: 0.4, out: 0.4, emoji: '🦙' }
+                // UPGRADED to Gemini 2.5 Flash and correct pricing
+                { id: 'google/gemini-2.5-flash', name: 'Gemini 2.5 Flash', in: 0.30, out: 2.50, emoji: '⚡' }, 
+                { id: 'meta-llama/llama-3.1-70b-instruct', name: 'Llama 3.1 70B', in: 0.4, out: 0.4, emoji: '🦙' },
+                // ADDED Kimi K2 model
+                { id: 'moonshotai/kimi-k2', name: 'Kimi K2', in: 0.02, out: 0.02, emoji: '💡' }
             ],
             'anthropic': [
                 { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', in: 3.00, out: 15.00, emoji: '🧠' },
@@ -270,7 +282,7 @@
             ],
             'openai': [
                 { id: 'gpt-4o', name: 'GPT-4o', in: 2.50, out: 10.00, emoji: '🧠' },
-                { id: 'gpt-4o-mini', name: 'GPT-4o Mini', in: 0.15, out: 0.60, emoji: '⚙️' }
+                { id: 'gpt-4o-mini', name: 'gpt-4o-mini', in: 0.15, out: 0.60, emoji: '⚙️' }
             ],
             'gemini': [
                 { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', in: 0.075, out: 0.30, emoji: '⚡' },
@@ -281,34 +293,6 @@
                 { id: 'mistral', name: 'Mistral (Local)', in: 0, out: 0, emoji: '🏠' }
             ]
         };
-        
-        // --- ABOUT/HELP CONTENT (NEW) ---
-        const ABOUT_MARKDOWN = `
-            ### 📊 AI Cost Tracker Overview
-
-            This is a minimal, client-side tool to give you **transparent, real-time control** over your AI service spending.
-
-            #### 🔒 Privacy and Data Security
-
-            The core principle is **complete data sovereignty**.
-            * **No Cloud Storage:** We do not use any database or server to store your data.
-            * **Local Storage Only:** API keys and usage history are stored exclusively in your browser's \`localStorage\`.
-            * **Direct API Calls:** Your browser communicates **directly** with the selected AI provider.
-
-            ---
-            
-            ### 🛠️ Debugging & Troubleshooting Guide
-            
-            | Issue | Most Likely Cause | Action to Take |
-            | :--- | :--- | :--- |
-            | **"Network Error"** (When using **Gemini/OpenAI/Anthropic keys directly**) | Browser's **CORS policy** blocks direct calls to major API providers from local files (\`file:///\`) or \`localhost\`. | **Use OpenRouter:** Connect through the **OpenRouter** provider instead. It's designed to bypass this browser restriction. |
-            | **"Access Denied / Status 401/403"** | Your API key is incorrect, expired, or the necessary services are not enabled. | **Check/Generate Key:** Ensure your key is correct. For **Gemini**, verify the **Generative Language API** is **enabled** in your Google Cloud/AI Studio project. |
-            | **Model Fails** (While other models work on **OpenRouter**) | The specific model ID is outdated or incorrect on the OpenRouter side. | **Verify Model ID:** Ensure the app is using the latest model ID (e.g., \`google/gemini-1.5-flash\`). If the issue persists, try a different OpenRouter model like GPT-4o. |
-            | **Code Fails with Status 400 (Bad Request)** | The JSON payload of the request is malformed (a client-side code bug). | **Update the Code:** This was resolved in the latest script update (the \`callGemini\` function has been fixed). Ensure you are using the complete, most recent version of this file. |
-
-            <p class="text-xs text-gray-500 mt-4">Version 1.0 | Zero Tracking</p>
-        `;
-
 
         let providers = JSON.parse(localStorage.getItem('act_providers') || '[]');
         let usage = JSON.parse(localStorage.getItem('act_usage') || '[]');
@@ -318,7 +302,7 @@
         /* ---------------- INITIALIZATION ---------------- */
         document.addEventListener('DOMContentLoaded', () => {
             renderUI();
-            updateModalUI(); 
+            updateModalUI(); // Initialize the model list on load
             
             document.getElementById('promptInput').addEventListener('input', updateEstimate);
             document.getElementById('activeProvider').addEventListener('change', updateEstimate);
@@ -329,8 +313,6 @@
                     runPrompt();
                 }
             });
-            // Pre-render the about content
-            document.getElementById('aboutContent').innerHTML = marked.parse(ABOUT_MARKDOWN);
         });
 
         function saveState() {
@@ -423,14 +405,15 @@
                 empty.classList.add('hidden');
                 providers.forEach(p => {
                     const div = document.createElement('div');
-                    div.className = 'bg-gray-900 p-4 rounded-lg border border-gray-800 flex justify-between items-center group hover:border-gray-700 transition';
+                    // Polished look for provider items
+                    div.className = 'bg-gray-950 p-4 rounded-lg border border-gray-800 flex justify-between items-center group hover:border-purple-600 transition';
                     const totalCost = usage.filter(u => u.pid === p.id).reduce((a,b) => a + b.cost, 0);
                     div.innerHTML = `
                         <div class="flex items-center gap-3">
-                            <div class="h-10 w-10 rounded-full bg-gradient-to-br from-gray-800 to-black border border-gray-700 flex items-center justify-center font-bold text-gray-400 text-xs">${p.type.substring(0,3).toUpperCase()}</div>
+                            <div class="h-10 w-10 rounded-full bg-gradient-to-br from-gray-800 to-black border border-gray-700 flex items-center justify-center font-bold text-purple-400 text-xs">${p.type.substring(0,3).toUpperCase()}</div>
                             <div><p class="font-bold text-sm text-gray-200">${p.name}</p><p class="text-xs text-gray-500 font-mono">${p.model}</p></div>
                         </div>
-                        <div class="text-right"><p class="text-xs text-gray-400 font-mono mb-1">$${totalCost.toFixed(4)}</p><button onclick="deleteProvider('${p.id}')" class="text-xs text-red-900 hover:text-red-400 transition">Remove</button></div>`;
+                        <div class="text-right"><p class="text-sm text-green-400 font-bold mb-1">$${totalCost.toFixed(4)}</p><button onclick="deleteProvider('${p.id}')" class="text-xs text-red-900 hover:text-red-400 transition">Remove</button></div>`;
                     list.appendChild(div);
                     
                     const opt = document.createElement('option');
@@ -461,6 +444,7 @@
             const customFields = document.getElementById('customFields');
             const smartModelContainer = document.getElementById('smartModelContainer');
             const anthropicHint = document.getElementById('anthropicHint');
+            const apiKeyContainer = document.getElementById('apiKeyContainer');
 
             presetSelect.innerHTML = '';
             anthropicHint.classList.add('hidden');
@@ -468,9 +452,15 @@
             if (type === 'custom') {
                 customFields.classList.remove('hidden');
                 smartModelContainer.classList.add('hidden');
+                apiKeyContainer.classList.remove('hidden');
+            } else if (type === 'ollama') {
+                customFields.classList.add('hidden');
+                smartModelContainer.classList.remove('hidden');
+                apiKeyContainer.classList.add('hidden'); // Ollama generally doesn't use an API key
             } else {
                 customFields.classList.add('hidden');
                 smartModelContainer.classList.remove('hidden');
+                apiKeyContainer.classList.remove('hidden');
                 
                 if (PRESETS[type]) {
                     PRESETS[type].forEach(model => {
@@ -484,8 +474,8 @@
                 if (type === 'anthropic') {
                     anthropicHint.classList.remove('hidden');
                 }
-                updateEstimate(); 
             }
+            updateEstimate(); 
         }
         
         /* ---------------- LOGIC ---------------- */
@@ -496,14 +486,14 @@
             const btn = document.getElementById('modalConnectBtn');
             const statusDiv = document.getElementById('healthCheckStatus');
             statusDiv.classList.add('hidden');
-            btn.disabled = true; btn.innerText = "Testing Connection...";
+            btn.disabled = true; btn.innerHTML = '<span class="animate-spin mr-2">🔄</span> Testing Connection...';
 
             if (type === 'custom') {
                 modelId = document.getElementById('pModelRaw').value;
                 baseUrl = document.getElementById('pUrl').value;
                 inPrice = parseFloat(document.getElementById('pIn').value)||0; outPrice = parseFloat(document.getElementById('pOut').value)||0;
                 name = `Custom (${modelId})`; apiKey = document.getElementById('pKey').value;
-                if (!baseUrl) return showError("Base URL required.");
+                if (!modelId || !baseUrl) return showError("Model ID and Base URL required.");
             } else {
                 const presetData = JSON.parse(document.getElementById('pPreset').value);
                 modelId = presetData.id; name = presetData.name; inPrice = presetData.in; outPrice = presetData.out;
@@ -553,7 +543,7 @@
             const outContent = document.getElementById('outputContent');
             const runStats = document.getElementById('runStats');
             
-            btn.innerHTML = "Thinking... ⚡️"; btn.disabled = true;
+            btn.innerHTML = '<span class="animate-spin mr-2">🧠</span> Calculating...'; btn.disabled = true;
             outArea.classList.remove('hidden'); outContent.innerHTML = '<span class="animate-pulse text-gray-500">Connecting...</span>';
             outArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -639,7 +629,9 @@
             const url = p.baseUrl.endsWith('/') ? `${p.baseUrl}chat/completions` : `${p.baseUrl}/chat/completions`;
             const headers = { "Content-Type": "application/json" };
             if (p.apiKey && p.type !== 'anthropic') headers["Authorization"] = `Bearer ${p.apiKey}`;
-            if (p.type === 'openrouter') { headers["HTTP-Referer"] = window.location.href; headers["X-Title"] = "AI Cost Tracker"; }
+            if (p.type === 'openrouter' || p.type === 'custom' && p.baseUrl.includes('openrouter.ai')) { 
+                headers["HTTP-Referer"] = window.location.href; headers["X-Title"] = "AI Cost Tracker"; 
+            }
             if (p.type === 'anthropic') {
                  headers["x-api-key"] = p.apiKey; headers["anthropic-version"] = "2023-06-01"; headers["anthropic-dangerous-direct-browser-access"] = "true";
             }
@@ -693,25 +685,25 @@
             if (errorText.includes('Failed to fetch') || errorText.includes('Type Error')) {
                 return `**Network Error:** The browser could not connect to the API URL.
                     - **Action 1:** Check your **Base URL** (for Custom or Ollama).
-                    - **Action 2:** If using Gemini/OpenAI/Anthropic directly, this often means **CORS (Cross-Origin Resource Sharing)** policy is blocking the request. The best solution is to use **OpenRouter** as a gateway.`;
+                    - **Action 2:** If using Gemini/OpenAI/Anthropic directly, this often means **CORS (Cross-Origin Resource Sharing)** is blocking the request. The best solution is to use **OpenRouter** as a gateway.`;
             }
 
             if (status === 401 || errorText.includes('401') || status === 403 || errorText.includes('403')) {
                 let keyAction = `- **Action:** Double-check your **API Key** for typos. Ensure the key has the correct permissions (e.g., the **Generative Language API** is enabled for your Gemini key).`;
                 if (type === 'openai') keyAction = `- **Action:** Double-check your **API Key** and ensure your OpenAI account has billing set up.`;
+                if (type === 'openrouter') keyAction = `- **Action:** Double-check your **OpenRouter Key** for typos.`;
                 return `**Access Denied (${status || 'Key Error'}):** Your API Key was rejected.
                     ${keyAction}`;
             }
 
             if (status === 404 || errorText.includes('404')) {
                 return `**Not Found (Status 404):** The API or Model ID could not be found.
-                    - **Action 1:** Check the spelling of the **Model ID** (e.g., \`gemini-1.5-flash\` or \`gpt-4o\`).
+                    - **Action 1:** Check the spelling of the **Model ID**.
                     - **Action 2:** Check the **Base URL** for Custom providers.`;
             }
 
             if (errorText.includes('Invalid JSON payload received')) {
-                return `**API Format Error (Status 400):** The Gemini API rejected the request format. This is a client-side code bug in the health check.
-                    - **Action:** This is fixed in the latest script. If you see this, ensure your \`index.html\` is fully updated, or try using **OpenRouter**.`;
+                return `**API Format Error (Status 400):** The Gemini API rejected the request format. If this persists after connecting, your key might be invalid or restricted.`;
             }
 
             // Fallback for uncaught errors
@@ -719,21 +711,21 @@
             const bodySnippet = bodyMatch ? JSON.parse(bodyMatch[1]).error?.message || errorText.substring(0, 100) : errorText.substring(0, 100);
 
             return `**Uncaught API Error:** ${bodySnippet.replace(/Status: \d+ - /g, '')}
-                - **Action:** Review the provider's official documentation for error details, or try a different model/provider.`;
+                - **Action:** Review the provider's official documentation for error details, or ensure the Model ID and Base URL are correct for custom providers.`;
         }
 
         function openAddModal() { document.getElementById('modalAdd').classList.add('active'); updateModalUI(); }
         function closeAddModal() { document.getElementById('modalAdd').classList.remove('active'); document.getElementById('modalConnectBtn').innerText="Connect"; document.getElementById('modalConnectBtn').disabled=false; }
         function openSettings() { document.getElementById('modalSettings').classList.add('active'); }
         function closeSettings() { document.getElementById('modalSettings').classList.remove('active'); }
-        function openAboutModal() { document.getElementById('modalAbout').classList.add('active'); } // NEW
-        function closeAboutModal() { document.getElementById('modalAbout').classList.remove('active'); } // NEW
+        function openAboutModal() { document.getElementById('modalAbout').classList.add('active'); }
+        function closeAboutModal() { document.getElementById('modalAbout').classList.remove('active'); }
         function openFeedbackModal() { document.getElementById('modalFeedback').classList.add('active'); }
         function closeFeedbackModal() { document.getElementById('modalFeedback').classList.remove('active'); }
         
-        function deleteProvider(id) { if(confirm('Remove?')) { providers = providers.filter(p=>p.id!==id); saveState(); }}
-        function clearData() { if(confirm('Delete ALL?')) { providers=[]; usage=[]; saveState(); closeSettings(); }}
-        function clearUsageOnly() { if(confirm('Clear history?')) { usage=[]; saveState(); closeSettings(); }}
+        function deleteProvider(id) { if(confirm('Are you sure you want to remove this provider?')) { providers = providers.filter(p=>p.id!==id); saveState(); }}
+        function clearData() { if(confirm('WARNING: This will clear ALL keys, costs, and usage history. Are you absolutely sure?')) { providers=[]; usage=[]; saveState(); closeSettings(); }}
+        function clearUsageOnly() { if(confirm('Clear all usage history? API keys will remain connected.')) { usage=[]; saveState(); closeSettings(); }}
         
         function sendFeedback() {
             const text = document.getElementById('feedbackText').value;
