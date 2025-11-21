@@ -35,18 +35,18 @@
         ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
     </style>
 </head>
-<body class="bg-gray-950 text-white min-h-screen pb-20">
+<body class="bg-gray-950 text-white min-h-screen flex flex-col">
 
     <header class="border-b border-gray-800 bg-gray-900/50 backdrop-blur-md sticky top-0 z-30">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center">
             <div class="flex items-center gap-3">
                 <div class="text-2xl">📉</div>
                 <div>
-                    <h1 class="text-xl font-bold">AI Cost Tracker <span class="text-xs bg-green-900 text-green-200 px-2 py-0.5 rounded">v1.1</span></h1>
+                    <h1 class="text-xl font-bold">AI Cost Tracker <span class="text-xs bg-green-900 text-green-200 px-2 py-0.5 rounded">v1.2</span></h1>
                 </div>
             </div>
             <div class="flex gap-2">
-                <button onclick="openFeedbackModal()" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded text-sm border border-gray-700 transition flex items-center gap-2" title="Send Feedback">
+                <button onclick="openFeedbackModal()" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded text-sm border border-gray-700 transition flex items-center gap-2">
                     <span>💬</span> <span class="hidden sm:inline">Feedback</span>
                 </button>
                 <button onclick="exportData()" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded text-sm border border-gray-700 transition">Export</button>
@@ -56,7 +56,7 @@
         </div>
     </header>
 
-    <main class="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 py-8 flex-grow">
         
         <div class="mb-8">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
@@ -146,6 +146,11 @@
         </div>
 
     </main>
+
+    <footer class="text-center py-8 border-t border-gray-800 text-gray-500 text-xs">
+        <p class="mb-2">AI Cost Tracker - Zero Tracking, Client-Side Only.</p>
+        <button onclick="openAboutModal()" class="text-gray-400 hover:text-white underline transition">Privacy Policy & About</button>
+    </footer>
 
     <div id="modalAdd" class="modal fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-sm px-4">
         <div class="bg-gray-900 w-full max-w-md rounded-xl border border-gray-800 shadow-2xl p-6 transition-all">
@@ -250,7 +255,7 @@
                     <li>**Local Storage Only:** API keys and usage history are stored exclusively in your browser's `localStorage`.</li>
                     <li>**Direct API Calls:** Your browser communicates **directly** with the selected AI provider.</li>
                 </ul>
-                <p class="text-xs text-gray-500 mt-4">Version 1.1 | Zero Tracking</p>
+                <p class="text-xs text-gray-500 mt-4">Version 1.2 | Zero Tracking</p>
                 <div class="mt-4 flex justify-end">
                     <button onclick="closeAboutModal()" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm font-medium">Close</button>
                 </div>
@@ -402,7 +407,7 @@
                 empty.classList.add('hidden');
                 providers.forEach(p => {
                     const div = document.createElement('div');
-                    div.className = 'bg-gray-950 p-4 rounded-lg border border-gray-800 flex justify-between items-center group hover:border-purple-600 transition';
+                    div.className = 'bg-gray-900 p-4 rounded-lg border border-gray-800 flex justify-between items-center group hover:border-purple-600 transition';
                     const totalCost = usage.filter(u => u.pid === p.id).reduce((a,b) => a + b.cost, 0);
                     div.innerHTML = `
                         <div class="flex items-center gap-3">
