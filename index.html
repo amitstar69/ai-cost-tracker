@@ -18,6 +18,9 @@
         .prose p { margin-bottom: 0.75rem; }
         .prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 0.75rem; }
         .prose strong { color: #fff; font-weight: 600; }
+        .prose table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        .prose th, .prose td { border: 1px solid #374151; padding: 0.5rem; text-align: left; }
+        .prose th { background-color: #1f2937; }
 
         /* Spinner for streaming */
         .stream-cursor { 
@@ -45,6 +48,9 @@
                 </div>
             </div>
             <div class="flex gap-2">
+                <button onclick="openAboutModal()" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded text-sm border border-gray-700 transition flex items-center gap-2" title="About / Help">
+                    <span>ℹ️</span> <span class="hidden sm:inline">About</span>
+                </button>
                 <button onclick="openFeedbackModal()" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded text-sm border border-gray-700 transition flex items-center gap-2" title="Send Feedback">
                     <span>💬</span> <span class="hidden sm:inline">Feedback</span>
                 </button>
@@ -233,23 +239,13 @@
     </div>
 
     <div id="modalAbout" class="modal fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-sm">
-        <div class="bg-gray-900 w-full max-w-xl rounded-xl border border-gray-800 shadow-2xl p-6 transition-all">
+        <div class="bg-gray-900 w-full max-w-xl rounded-xl border border-gray-800 shadow-2xl p-6 transition-all max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-6">
-                <h3 class="text-xl font-bold">About AI Cost Tracker</h3>
+                <h3 class="text-xl font-bold">About & Help</h3>
                 <button onclick="closeAboutModal()" class="text-gray-500 hover:text-white text-xl">&times;</button>
             </div>
-            <div class="prose prose-invert text-sm text-gray-300 leading-relaxed">
-                <p>The **AI Cost Tracker** is a minimal, client-side tool designed to give you **transparent, real-time control** over your AI service spending.</p>
-                
-                <h4>🛡️ Privacy and Data Security</h4>
-                <p>The core principle of this tool is **complete data sovereignty**.</p>
-                <ul>
-                    <li>**No Cloud Storage:** We do not use any database, server, or cloud service to store your data.</li>
-                    <li>**Local Storage Only:** API keys and usage history are stored exclusively in your browser's `localStorage`.</li>
-                    <li>**Direct API Calls:** Your browser communicates **directly** with the selected AI provider.</li>
-                </ul>
-                <p class="text-xs text-gray-500 mt-4">Version 1.0 | Zero Tracking</p>
-            </div>
+            <div id="aboutContent" class="prose prose-invert text-sm text-gray-300 leading-relaxed">
+                </div>
         </div>
     </div>
 
@@ -257,13 +253,14 @@
         // --- CONFIGURATION ---
         const DEVELOPER_EMAIL = "amitstar.ch@gmail.com"; 
 
-        // --- PRICING DATABASE ---
+        // --- PRICING DATABASE (Updated Gemini ID for OpenRouter for better compatibility) ---
         const PRESETS = {
             'openrouter': [
                 { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', in: 3.00, out: 15.00, emoji: '🔥' },
                 { id: 'openai/gpt-4o', name: 'GPT-4o', in: 2.50, out: 10.00, emoji: '🧠' },
                 { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini', in: 0.15, out: 0.60, emoji: '⚙️' },
-                { id: 'google/gemini-flash-1.5', name: 'Gemini Flash 1.5', in: 0.075, out: 0.30, emoji: '⚡' },
+                // Corrected/Canonical Gemini ID for OpenRouter compatibility
+                { id: 'google/gemini-1.5-flash', name: 'Gemini 1.5 Flash', in: 0.075, out: 0.30, emoji: '⚡' }, 
                 { id: 'meta-llama/llama-3.1-70b-instruct', name: 'Llama 3.1 70B', in: 0.4, out: 0.4, emoji: '🦙' }
             ],
             'anthropic': [
@@ -284,6 +281,34 @@
                 { id: 'mistral', name: 'Mistral (Local)', in: 0, out: 0, emoji: '🏠' }
             ]
         };
+        
+        // --- ABOUT/HELP CONTENT (NEW) ---
+        const ABOUT_MARKDOWN = `
+            ### 📊 AI Cost Tracker Overview
+
+            This is a minimal, client-side tool to give you **transparent, real-time control** over your AI service spending.
+
+            #### 🔒 Privacy and Data Security
+
+            The core principle is **complete data sovereignty**.
+            * **No Cloud Storage:** We do not use any database or server to store your data.
+            * **Local Storage Only:** API keys and usage history are stored exclusively in your browser's \`localStorage\`.
+            * **Direct API Calls:** Your browser communicates **directly** with the selected AI provider.
+
+            ---
+            
+            ### 🛠️ Debugging & Troubleshooting Guide
+            
+            | Issue | Most Likely Cause | Action to Take |
+            | :--- | :--- | :--- |
+            | **"Network Error"** (When using **Gemini/OpenAI/Anthropic keys directly**) | Browser's **CORS policy** blocks direct calls to major API providers from local files (\`file:///\`) or \`localhost\`. | **Use OpenRouter:** Connect through the **OpenRouter** provider instead. It's designed to bypass this browser restriction. |
+            | **"Access Denied / Status 401/403"** | Your API key is incorrect, expired, or the necessary services are not enabled. | **Check/Generate Key:** Ensure your key is correct. For **Gemini**, verify the **Generative Language API** is **enabled** in your Google Cloud/AI Studio project. |
+            | **Model Fails** (While other models work on **OpenRouter**) | The specific model ID is outdated or incorrect on the OpenRouter side. | **Verify Model ID:** Ensure the app is using the latest model ID (e.g., \`google/gemini-1.5-flash\`). If the issue persists, try a different OpenRouter model like GPT-4o. |
+            | **Code Fails with Status 400 (Bad Request)** | The JSON payload of the request is malformed (a client-side code bug). | **Update the Code:** This was resolved in the latest script update (the \`callGemini\` function has been fixed). Ensure you are using the complete, most recent version of this file. |
+
+            <p class="text-xs text-gray-500 mt-4">Version 1.0 | Zero Tracking</p>
+        `;
+
 
         let providers = JSON.parse(localStorage.getItem('act_providers') || '[]');
         let usage = JSON.parse(localStorage.getItem('act_usage') || '[]');
@@ -293,7 +318,7 @@
         /* ---------------- INITIALIZATION ---------------- */
         document.addEventListener('DOMContentLoaded', () => {
             renderUI();
-            updateModalUI(); // Initialize the model list on load
+            updateModalUI(); 
             
             document.getElementById('promptInput').addEventListener('input', updateEstimate);
             document.getElementById('activeProvider').addEventListener('change', updateEstimate);
@@ -304,6 +329,8 @@
                     runPrompt();
                 }
             });
+            // Pre-render the about content
+            document.getElementById('aboutContent').innerHTML = marked.parse(ABOUT_MARKDOWN);
         });
 
         function saveState() {
@@ -501,7 +528,6 @@
             }
 
             function showError(msg) {
-                // Modified to handle action formatting consistently
                 statusDiv.innerHTML = `<div class="font-bold text-red-300">Connection Failed:</div><div class="mt-1">${msg}</div>`;
                 statusDiv.className = "text-xs text-red-400 bg-red-900/20 p-3 rounded-lg border border-red-900 mb-4"; statusDiv.classList.remove('hidden');
                 btn.disabled = false; btn.innerText = "Retry Connect";
@@ -552,7 +578,6 @@
                 usage.push({ id: Date.now(), pid: p.id, ts: new Date().toISOString(), inTok, outTok, cost });
                 saveState();
             } catch (e) {
-                // Use parseApiError for runtime errors too
                 outContent.innerHTML = `<div class="bg-red-900/20 border border-red-800 text-red-300 p-4 rounded-lg text-sm">${parseApiError(e.message, p.type)}</div>`;
             } finally { btn.innerHTML = "Run Request"; btn.disabled = false; }
         }
@@ -660,7 +685,7 @@
             display.innerText = `~${tokens} toks • $${cost.toFixed(6)} est.`;
         }
         
-        // --- IMPROVED ERROR PARSING (THE FIX) ---
+        // --- IMPROVED ERROR PARSING ---
         function parseApiError(errorText, type) {
             const statusMatch = errorText.match(/Status: (\d+)/);
             const status = statusMatch ? parseInt(statusMatch[1]) : null;
@@ -668,7 +693,7 @@
             if (errorText.includes('Failed to fetch') || errorText.includes('Type Error')) {
                 return `**Network Error:** The browser could not connect to the API URL.
                     - **Action 1:** Check your **Base URL** (for Custom or Ollama).
-                    - **Action 2:** If using Gemini/OpenAI/Anthropic, this often means **CORS (Cross-Origin Resource Sharing)** policy is blocking the request. The best solution is to use **OpenRouter** as a gateway.`;
+                    - **Action 2:** If using Gemini/OpenAI/Anthropic directly, this often means **CORS (Cross-Origin Resource Sharing)** policy is blocking the request. The best solution is to use **OpenRouter** as a gateway.`;
             }
 
             if (status === 401 || errorText.includes('401') || status === 403 || errorText.includes('403')) {
@@ -686,7 +711,7 @@
 
             if (errorText.includes('Invalid JSON payload received')) {
                 return `**API Format Error (Status 400):** The Gemini API rejected the request format. This is a client-side code bug in the health check.
-                    - **Action:** If this error persists, try using **OpenRouter** which handles Gemini model integration more reliably.`;
+                    - **Action:** This is fixed in the latest script. If you see this, ensure your \`index.html\` is fully updated, or try using **OpenRouter**.`;
             }
 
             // Fallback for uncaught errors
@@ -701,8 +726,8 @@
         function closeAddModal() { document.getElementById('modalAdd').classList.remove('active'); document.getElementById('modalConnectBtn').innerText="Connect"; document.getElementById('modalConnectBtn').disabled=false; }
         function openSettings() { document.getElementById('modalSettings').classList.add('active'); }
         function closeSettings() { document.getElementById('modalSettings').classList.remove('active'); }
-        function openAboutModal() { document.getElementById('modalAbout').classList.add('active'); }
-        function closeAboutModal() { document.getElementById('modalAbout').classList.remove('active'); }
+        function openAboutModal() { document.getElementById('modalAbout').classList.add('active'); } // NEW
+        function closeAboutModal() { document.getElementById('modalAbout').classList.remove('active'); } // NEW
         function openFeedbackModal() { document.getElementById('modalFeedback').classList.add('active'); }
         function closeFeedbackModal() { document.getElementById('modalFeedback').classList.remove('active'); }
         
